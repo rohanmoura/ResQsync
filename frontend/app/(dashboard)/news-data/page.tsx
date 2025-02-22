@@ -1,24 +1,16 @@
-"use client";
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { TextEffect } from "@/components/core/text-effect";
 import { TextRoll } from "@/components/core/text-roll";
 import { TextShimmer } from "@/components/core/text-shimmer";
-import { AnimatedGroup } from '@/components/core/animated-group';
-import { Tilt } from "@/components/core/tilt";
-import { Spotlighter } from "@/components/core/spotlighter";
-import { motion } from "framer-motion";
 import { BorderTrail } from "@/components/core/border-trail";
+import { AnimatedGroup } from "@/components/core/animated-group";
 import { GlowEffect } from "@/components/core/glow-effect";
+import { Tilt } from "@/components/core/tilt";
 import { Carousel, CarouselContent, CarouselIndicator, CarouselItem, CarouselNavigation } from "@/components/ui/carousel";
-import { Loader2 } from "lucide-react";
-
-
-
-
-
-
 
 const NewsData = () => {
     const [activePage, setActivePage] = useState(1);
@@ -29,10 +21,9 @@ const NewsData = () => {
         const fetchNews = async () => {
             setLoading(true);
             try {
-                const response = await fetch(`http://localhost:8081/api/news/pandemic?page=${activePage}`);
-                const data = await response.json();
-                if (data.length === 16) {
-                    setNewsData(data);
+                const response = await axios.get(`http://localhost:8081/api/news/pandemic?page=${activePage}`);
+                if (response.data.length === 16) {
+                    setNewsData(response.data);
                 } else {
                     setNewsData([]);
                 }
