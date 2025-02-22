@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -81,7 +82,7 @@ public class SecurityConfig {
     http.cors(cors -> corsFilter())
         .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless APIs
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/hospitals/**" , "/api/auth/**").permitAll()
+            .requestMatchers("/api/hospitals/**", "/api/auth/**", "/api/news/**").permitAll()
             .anyRequest().authenticated() // Protect all other endpoints
         )
         .sessionManagement(sess -> sess
@@ -158,5 +159,10 @@ public class SecurityConfig {
   @Bean
   PasswordEncoder passwordEncoder() {
     return new BCryptPasswordEncoder(); // Use BCrypt for password hashing
+  }
+
+  @Bean
+  RestTemplate restTemplate() {
+    return new RestTemplate();
   }
 }

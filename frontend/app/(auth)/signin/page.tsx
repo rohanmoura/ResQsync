@@ -10,35 +10,63 @@ import { BorderTrail } from "@/components/core/border-trail";
 import { TextRoll } from "@/components/core/text-roll";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { ArrowRight } from "lucide-react";
+import {jwtDecode} from "jwt-decode"; // Import jwtDecode
+
 
 export default function SignInPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
-
+    
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
+    
         try {
             const response = await axios.post("http://localhost:8081/api/auth/login", {
                 email,
                 password,
             });
+    
+            console.log("Full Response: ", response); // Debugging line
 
-            // Assuming the JWT token is returned in response.data.token
-            const token = response.data.token;
-            if (token) {
-                localStorage.setItem("jwtToken", token);
+            // Get the token from the response
+            const token = response.headers["authorization"];  
+            console.log("Token: ", token); // Debugging line
+            
+    
+            if (token && typeof token === 'string') {
+                let jwt = token; // Default token
+    
+                // Check if the token starts with "Bearer " and remove it
+                if (jwt.startsWith("Bearer ")) {
+                    jwt = jwt.split(" ")[1]; // Remove "Bearer "
+                }
+    
+                // Decode the JWT token
+                const decodedToken = jwtDecode(jwt);
+                const expirationTime = decodedToken.exp; // ✅ Extracts exp from token
+    
+                // Save the decoded token to localStorage
+                localStorage.setItem("jwtToken" , jwt);
+                if (expirationTime) {
+                    localStorage.setItem("jwtExp", expirationTime.toString()); // ✅ Store expiration time
+                } else {
+                    throw new Error("Expiration time not found in token");
+                }
+    
+                // Redirect the user to the homepage
+                router.push("/");
+            } else {
+                throw new Error("Token not received");
             }
-
-            // Redirect the user to the homepage ("/")
-            router.push("/");
         } catch (err: any) {
             console.error("Login error: ", err);
             setError(err.response?.data?.message || "Login failed");
         }
     };
+    
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">
@@ -151,3 +179,4 @@ export default function SignInPage() {
         </div>
     );
 }
+
