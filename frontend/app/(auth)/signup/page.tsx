@@ -12,7 +12,6 @@ import { GlowEffect } from "@/components/core/glow-effect";
 import { ArrowRight } from "lucide-react";
 
 export default function SignUpPage() {
-    const [username, setUsername] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");

@@ -12,6 +12,7 @@ export default function Navbar() {
         { label: "Solutions", href: "#solutions" },
         { label: "Process", href: "#process" },
         { label: "Testimonials", href: "#testimonials" },
+        { label: "Hospital Data", href: "/hospital-data" }, // Added fifth tab
     ];
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
