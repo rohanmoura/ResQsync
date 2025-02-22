@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ToogleMode";
 import { AnimatedBackground } from '@/components/core/animated-background';
 import { GlowEffect } from "@/components/core/glow-effect";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 
 export default function Navbar() {
@@ -12,40 +13,45 @@ export default function Navbar() {
         { label: "About Us", href: "#about" },
         { label: "Solutions", href: "#solutions" },
         { label: "Process", href: "#process" },
-        { label: "Testimonials", href: "#testimonials" },
         { label: "Hospital Data", href: "/hospital-data" },
+        { label: "News Data", href: "/news-data" }, // ✅ Added News Data tab
     ];
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [user, setUser] = useState<{ name: string; avatar?: string } | null>(null);
     const router = useRouter();
 
-    // ✅ Function to check JWT token validity every 10 seconds
     useEffect(() => {
         const checkAuthStatus = () => {
             const token = localStorage.getItem("jwtToken");
             const exp = localStorage.getItem("jwtExp");
+            const storedUser = localStorage.getItem("user");
 
             if (token && exp) {
-                const now = Math.floor(Date.now() / 1000); // Current timestamp
-
+                const now = Math.floor(Date.now() / 1000);
                 if (now > parseInt(exp)) {
                     console.log("Token expired! Logging out...");
                     localStorage.removeItem("jwtToken");
                     localStorage.removeItem("jwtExp");
+                    localStorage.removeItem("user");
                     setIsAuthenticated(false);
-                    router.push("/signin");
+                    setUser(null);
+                    router.push("/");
                 } else {
                     setIsAuthenticated(true);
+                    if (storedUser) {
+                        setUser(JSON.parse(storedUser));
+                    }
                 }
             } else {
                 setIsAuthenticated(false);
+                setUser(null);
             }
         };
 
-        // ✅ Check every 10 seconds
         const interval = setInterval(checkAuthStatus, 10000);
-        checkAuthStatus(); // Initial check
+        checkAuthStatus();
 
         return () => clearInterval(interval);
     }, [router]);
@@ -53,7 +59,6 @@ export default function Navbar() {
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                {/* Left: Logo */}
                 <Link href="/" className="text-xl font-bold text-primary">
                     ResQSync
                 </Link>
@@ -92,15 +97,12 @@ export default function Navbar() {
                         />
                         {isAuthenticated ? (
                             <Link href="/profile" passHref>
-                                <Button
-                                    variant="ghost"
-                                    className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold 
-                                    bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 
-                                    dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent 
-                                    dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
-                                >
-                                    Profile
-                                </Button>
+                                <Avatar className="cursor-pointer border border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all">
+                                    <AvatarImage src={user?.avatar || ""} alt="User Avatar" />
+                                    <AvatarFallback>
+                                        {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
+                                    </AvatarFallback>
+                                </Avatar>
                             </Link>
                         ) : (
                             <Link href="/signin" passHref>
