@@ -17,6 +17,7 @@ import { HospitalData } from "./page";
 import { Tilt } from "@/components/core/tilt";
 import { TextRoll } from "@/components/core/text-roll";
 import { TextEffect } from "@/components/core/text-effect";
+import { TextShimmer } from "@/components/core/text-shimmer";
 
 interface HospitalCardsGridProps {
     hospitalDataList: HospitalData[];
@@ -28,28 +29,52 @@ const HospitalCardsGrid: React.FC<HospitalCardsGridProps> = ({ hospitalDataList 
             {/* Page Title */}
 
             <div className="text-center mb-8">
-                {/* Animated Heading */}
-                <TextRoll
-                    className="text-3xl font-bold text-primary"
-                    variants={{
-                        enter: {
-                            initial: { rotateX: 0, filter: 'blur(0px)' },
-                            animate: { rotateX: 90, filter: 'blur(2px)' },
-                        },
-                        exit: {
-                            initial: { rotateX: 90, filter: 'blur(2px)' },
-                            animate: { rotateX: 0, filter: 'blur(0px)' },
-                        },
-                    }}
-                >
-                    Hospital Bed Availability
-                </TextRoll>
+                {/* Container for combined heading animations */}
+                <div className="relative inline-block">
+                    {/* TextRoll Animation */}
+                    <TextRoll
+                        className="text-3xl font-bold text-primary"
+                        variants={{
+                            enter: {
+                                initial: { rotateX: 0, filter: "blur(0px)" },
+                                animate: { rotateX: 90, filter: "blur(2px)" },
+                            },
+                            exit: {
+                                initial: { rotateX: 90, filter: "blur(2px)" },
+                                animate: { rotateX: 0, filter: "blur(0px)" },
+                            },
+                        }}
+                    >
+                        Hospital Bed Availability
+                    </TextRoll>
 
-                {/* Animated Subheading */}
-                <TextEffect per="word" as="p" preset="slide" className="text-muted-foreground mt-2">
+                    {/* TextShimmer Animation overlaid on top */}
+                    <TextShimmer
+                        duration={1.5} // Smoother animation
+                        spread={3} // Wider gradient spread
+                        className={`
+            absolute inset-0 text-3xl font-bold 
+            [--base-color:theme(colors.gray.800)] 
+            [--base-gradient-color:theme(colors.indigo.500)] 
+            dark:[--base-color:theme(colors.gray.100)] 
+            dark:[--base-gradient-color:theme(colors.indigo.400)]
+          `}
+                    >
+                        Hospital Bed Availability
+                    </TextShimmer>
+                </div>
+
+                {/* Subheading remains unchanged */}
+                <TextEffect
+                    per="word"
+                    as="p"
+                    preset="slide"
+                    className="text-muted-foreground mt-2"
+                >
                     Check real-time availability of critical and non-critical hospital beds.
                 </TextEffect>
             </div>
+
 
             {/* Hospital Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
