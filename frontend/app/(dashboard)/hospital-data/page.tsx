@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import HospitalCardsGrid from './HospitalCardsGrid';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { Card, CardContent } from '@/components/ui/card';
 
 // Define the hospital data interface
 export interface HospitalData {
@@ -41,8 +43,23 @@ const HospitalsPage: React.FC = () => {
             });
     }, []);
 
-    if (loading) return <div>Loading hospitals...</div>;
-    if (error) return <div>Error: {error}</div>;
+    if (loading)
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+        );
+    if (error)
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <Card className="border border-destructive/50 bg-destructive/10 text-destructive">
+                    <CardContent className="p-4 flex items-center gap-2">
+                        <AlertCircle className="h-6 w-6" />
+                        <span>{error}</span>
+                    </CardContent>
+                </Card>
+            </div>
+        );
 
     // Pass the fetched data to your grid component
     return <HospitalCardsGrid hospitalDataList={hospitalDataList} />;
