@@ -48,7 +48,7 @@ public class SignUpAndLoginController {
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@Valid @RequestBody AuthRequest authRequest, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             // Collect all errors into a list of strings
