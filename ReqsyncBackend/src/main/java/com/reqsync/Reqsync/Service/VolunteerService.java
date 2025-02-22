@@ -1,5 +1,6 @@
 package com.reqsync.Reqsync.Service;
 
+import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.Dto.VolunteerDto;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.Volunteer;
@@ -48,14 +49,13 @@ public class VolunteerService {
         // Check if the user already has the "VOLUNTEER" role
         Roles volunteerRole = roleRepository.findByRole("VOLUNTEER");
         if (volunteerRole == null) {
-        	throw new IllegalArgumentException("Role not found: VOLUNTEER");
-		}
-                
+            throw new IllegalArgumentException("Role not found: VOLUNTEER");
+        }
 
         if (!user.getRoles().contains(volunteerRole)) {
             // Add the "VOLUNTEER" role to the user
             user.getRoles().add(volunteerRole);
-            userRepository.save(user);  // Save the updated user with the new role
+            userRepository.save(user); // Save the updated user with the new role
         }
 
         // Convert VolunteerDto to Volunteer entity
@@ -67,5 +67,25 @@ public class VolunteerService {
 
         // Save the volunteer to the database
         volunteerRepository.save(volunteer);
+    }
+
+    public boolean deleteVolunteerRole(String email) {
+        Roles volunteerRole = roleRepository.findByRole("VOLUNTEER");
+        if (volunteerRole == null) {
+            throw new IllegalArgumentException("Role not found: VOLUNTEER");
+        }
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsersNotFound("User not found with email: " + email));
+
+        if (user != null) {
+            if (!user.getRoles().contains(volunteerRole)) {
+                throw new IllegalArgumentException("User does not have the VOLUNTEER role");
+            }
+            user.getRoles().remove(volunteerRole);
+            userRepository.save(user);
+            return true;
+        }
+        return false;
     }
 }

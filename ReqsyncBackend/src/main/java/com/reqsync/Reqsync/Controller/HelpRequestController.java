@@ -24,7 +24,8 @@ public class HelpRequestController {
      * Endpoint to submit a new help request with validation.
      */
     @PostMapping("/submit")
-    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestDto helpRequestDto, BindingResult bindingResult) {
+    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestDto helpRequestDto,
+            BindingResult bindingResult) {
         // Check for validation errors
         if (bindingResult.hasErrors()) {
             // Collect all errors into a list of strings
@@ -40,7 +41,18 @@ public class HelpRequestController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>("An error occurred while submitting the help request.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("An error occurred while submitting the help request.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/deletehelprequestorrole")
+    public ResponseEntity<String> deleteVolunteer(@RequestParam String email) {
+        try {
+            helpRequestService.deleteHelpRequestorRole(email);
+            return new ResponseEntity<>("HelpRequestorrole deleted successfully!", HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }
