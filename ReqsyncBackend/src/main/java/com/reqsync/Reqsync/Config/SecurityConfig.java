@@ -81,7 +81,7 @@ public class SecurityConfig {
     http.cors(cors -> corsFilter())
         .csrf(csrf -> csrf.disable()) // Disable CSRF for stateless APIs
         .authorizeHttpRequests(auth -> auth
-            .requestMatchers("/api/hospitals/**").permitAll()
+            .requestMatchers("/api/hospitals/**" , "/api/auth/**").permitAll()
             .anyRequest().authenticated() // Protect all other endpoints
         )
         .sessionManagement(sess -> sess
