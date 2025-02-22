@@ -74,7 +74,7 @@ export default function Navbar() {
                   dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent
               `}
                             >
-                                Sign In
+                                Log In
                             </Button>
                         </Link>
                     </div>
