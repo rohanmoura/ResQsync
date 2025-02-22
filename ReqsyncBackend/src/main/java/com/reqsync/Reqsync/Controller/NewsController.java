@@ -3,9 +3,10 @@ package com.reqsync.Reqsync.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import com.reqsync.Reqsync.Dto.NewsDto;
 import com.reqsync.Reqsync.Service.NewsService;
 
-import java.util.Map;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/news")
@@ -15,7 +16,7 @@ public class NewsController {
     private NewsService newsService;
 
     @GetMapping("/pandemic")
-    public Map<String, Object> fetchPandemicNews() {
-        return newsService.getPandemicNews();
+    public List<NewsDto> fetchPandemicNews(@RequestParam(defaultValue = "1") int page) {
+        return newsService.getPandemicNews(page);
     }
 }

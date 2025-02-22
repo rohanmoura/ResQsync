@@ -24,7 +24,8 @@ public class VolunteerController {
      * Endpoint to add a new volunteer with validation.
      */
     @PostMapping("/add")
-    public ResponseEntity<String> addVolunteer(@Valid @RequestBody VolunteerDto volunteerDto, BindingResult bindingResult) {
+    public ResponseEntity<String> addVolunteer(@Valid @RequestBody VolunteerDto volunteerDto,
+            BindingResult bindingResult) {
         // Check for validation errors
         if (bindingResult.hasErrors()) {
             // Collect all errors into a list of strings
@@ -40,7 +41,18 @@ public class VolunteerController {
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (Exception e) {
-            return new ResponseEntity<>("An error occurred while adding the volunteer.", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>("An error occurred while adding the volunteer.",
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    @DeleteMapping("/deletevolunteerrole")
+    public ResponseEntity<String> deleteVolunteer(@RequestParam String email) {
+        try {
+            volunteerService.deleteVolunteerRole(email);
+            return new ResponseEntity<>("Volunteer deleted successfully!", HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
 }
