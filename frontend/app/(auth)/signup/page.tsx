@@ -24,7 +24,6 @@ export default function SignUpPage() {
 
         try {
             const response = await axios.post("http://localhost:8081/api/auth/signup", {
-                username,
                 email,
                 password,
             });
@@ -61,28 +60,6 @@ export default function SignUpPage() {
                     </CardHeader>
                     <CardContent>
                         <form className="space-y-6" onSubmit={handleSignUp}>
-                            {/* Username Field */}
-                            <div>
-                                <Label htmlFor="username" className="block text-sm font-medium">
-                                    Username
-                                </Label>
-                                <div className="relative h-[50px] w-full overflow-hidden rounded-md border border-zinc-950/10 bg-white text-zinc-700 mt-1 dark:border-zinc-50/20 dark:bg-zinc-950 dark:text-zinc-300">
-                                    <Input
-                                        id="username"
-                                        type="text"
-                                        placeholder="your username"
-                                        required
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        className="h-full w-full resize-none rounded-md bg-transparent px-4 py-3 text-sm"
-                                    />
-                                    <BorderTrail
-                                        className="bg-linear-to-l from-blue-200 via-blue-500 to-blue-200 dark:from-blue-400 dark:via-blue-500 dark:to-blue-700"
-                                        size={120}
-                                    />
-                                </div>
-                            </div>
-
                             {/* Email Field */}
                             <div>
                                 <Label htmlFor="email" className="block text-sm font-medium">
