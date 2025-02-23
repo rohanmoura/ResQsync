@@ -3,10 +3,12 @@ package com.reqsync.Reqsync.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import com.reqsync.Reqsync.Dto.VolunteerDto;
+import com.reqsync.Reqsync.Service.EmailService;
 import com.reqsync.Reqsync.Service.VolunteerService;
 
 import jakarta.validation.Valid;
@@ -14,11 +16,15 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
+@PreAuthorize("hasAuthority('USER')")
 @RequestMapping("/api/volunteers")
 public class VolunteerController {
 
     @Autowired
     private VolunteerService volunteerService;
+
+    @Autowired
+    private EmailService emailService;
 
     /**
      * Endpoint to add a new volunteer with validation.
@@ -37,6 +43,7 @@ public class VolunteerController {
 
         try {
             volunteerService.addVolunteer(volunteerDto);
+            emailService.sendVolunteerWelcomeEmail(volunteerDto.getEmail(), volunteerDto.getName());
             return new ResponseEntity<>("Volunteer added successfully!", HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);

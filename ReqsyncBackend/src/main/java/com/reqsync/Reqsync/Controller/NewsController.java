@@ -16,7 +16,7 @@ public class NewsController {
     private NewsService newsService;
 
     @GetMapping("/pandemic")
-    public List<NewsDto> fetchPandemicNews(@RequestParam(defaultValue = "1") int page) {
-        return newsService.getPandemicNews(page);
+    public List<NewsDto> fetchPandemicNews() {
+        return newsService.getPandemicNews();
     }
 }

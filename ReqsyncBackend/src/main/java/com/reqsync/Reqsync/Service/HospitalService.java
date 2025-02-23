@@ -14,8 +14,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.management.RuntimeErrorException;
-
 public class HospitalService {
 
     public static List<Map<String, String>> scrapeHospitalData(String url) {
@@ -37,7 +35,7 @@ public class HospitalService {
                     }
                 } else {
                     throw new NoHeader("No headers found in the table.");
-                   
+
                 }
 
                 // Extract table rows
@@ -54,10 +52,10 @@ public class HospitalService {
                         }
                     }
                 } else {
-                	 throw new NoRowsFound("No rows found in the table.");
+                    throw new NoRowsFound("No rows found in the table.");
                 }
             } else {
-            	throw new NoTableFound("No table found on the page.");
+                throw new NoTableFound("No table found on the page.");
             }
         } catch (Exception e) {
             e.printStackTrace();

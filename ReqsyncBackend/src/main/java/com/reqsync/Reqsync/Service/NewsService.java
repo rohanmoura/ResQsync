@@ -24,8 +24,8 @@ public class NewsService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public List<NewsDto> getPandemicNews(int page) {
-        String url = apiUrl + "?q=pandemic OR disease OR virus&pageSize=16&page=" + page + "&apiKey=" + apiKey;
+    public List<NewsDto> getPandemicNews() {
+        String url = apiUrl + "?q=pandemic OR disease OR virus&apiKey=" + apiKey;
 
         ResponseEntity<Map<String, Object>> responseEntity = restTemplate.exchange(
                 url, HttpMethod.GET, null, new ParameterizedTypeReference<>() {

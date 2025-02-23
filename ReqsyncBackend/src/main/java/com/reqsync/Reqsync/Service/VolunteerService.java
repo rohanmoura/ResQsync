@@ -1,5 +1,6 @@
 package com.reqsync.Reqsync.Service;
 
+import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.Dto.VolunteerDto;
 import com.reqsync.Reqsync.Entity.Roles;
@@ -43,7 +44,6 @@ public class VolunteerService {
         if (userOptional.isEmpty()) {
             throw new IllegalArgumentException("User not found with email: " + userEmail);
         }
-
         User user = userOptional.get();
 
         // Check if the user already has the "VOLUNTEER" role
@@ -52,6 +52,9 @@ public class VolunteerService {
             throw new IllegalArgumentException("Role not found: VOLUNTEER");
         }
 
+        if (user.getRoles().contains(volunteerRole)) {
+            throw new AlreadyUsedEmail("User already has the VOLUNTEER role");
+        }
         if (!user.getRoles().contains(volunteerRole)) {
             // Add the "VOLUNTEER" role to the user
             user.getRoles().add(volunteerRole);

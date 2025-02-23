@@ -1,5 +1,6 @@
 package com.reqsync.Reqsync.Service;
 
+import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.Dto.HelpRequestDto;
 import com.reqsync.Reqsync.Entity.HelpRequest;
@@ -47,6 +48,10 @@ public class HelpRequestService {
         Roles helpRequesterRole = roleRepository.findByRole("HELPREQUESTER");
         if (helpRequesterRole == null) {
             throw new IllegalArgumentException("Role not found: HELP_REQUESTER");
+        }
+
+        if (user.getRoles().contains(helpRequesterRole)) {
+            throw new AlreadyUsedEmail("User already has the HelpRequestor role");
         }
 
         if (!user.getRoles().contains(helpRequesterRole)) {
