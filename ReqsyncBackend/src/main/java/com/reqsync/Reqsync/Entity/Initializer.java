@@ -3,7 +3,6 @@ package com.reqsync.Reqsync.Entity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.reqsync.*;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 
 import jakarta.annotation.PostConstruct;
@@ -34,7 +33,7 @@ public class Initializer {
             volunteerRole.setRole("HELPREQUESTER");
             roleRepository.save(volunteerRole);
         }
-        
+
         if (!roleRepository.existsByRole("VOLUNTEER")) {
             Roles volunteerRole = new Roles();
             volunteerRole.setRole("VOLUNTEER");

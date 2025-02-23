@@ -1,6 +1,5 @@
 package com.reqsync.Reqsync.Dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -11,10 +10,6 @@ public class HelpRequestDto {
     @NotBlank(message = "Name is required.")
     @Size(max = 50, message = "Name must be less than 50 characters.")
     private String name;
-
-    @NotBlank(message = "Email is required.")
-    @Email(message = "Invalid email format.")
-    private String email;
 
     @NotBlank(message = "Phone number is required.")
     @Size(max = 15, message = "Phone number must be less than 15 characters.")

@@ -42,9 +42,6 @@ public class HelpRequestController {
             return new ResponseEntity<>("Help request submitted successfully!", HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>("An error occurred while submitting the help request.",
-                    HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
