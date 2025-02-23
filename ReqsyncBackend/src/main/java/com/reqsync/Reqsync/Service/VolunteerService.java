@@ -11,7 +11,7 @@ import com.reqsync.Reqsync.CustomException.HelpRequestorAccessed;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.CustomException.VolunteerAccessed;
 import com.reqsync.Reqsync.CustomException.WrongAuthenticationCredentials;
-import com.reqsync.Reqsync.Dto.VolunteerDto;
+import com.reqsync.Reqsync.Dao.VolunteerDto;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
 import com.reqsync.Reqsync.Entity.Volunteer;

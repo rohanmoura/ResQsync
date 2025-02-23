@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.reqsync.Reqsync.Dto.VolunteerDto;
+import com.reqsync.Reqsync.Dao.VolunteerDto;
 import com.reqsync.Reqsync.Service.VolunteerService;
 
 import jakarta.validation.Valid;

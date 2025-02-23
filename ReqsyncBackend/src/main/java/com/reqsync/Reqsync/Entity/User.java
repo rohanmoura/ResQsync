@@ -36,6 +36,21 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "user_name", nullable = true)
+    private String name;
+
+    @Column(name = "phone_number", nullable = true)
+    private String phone;
+
+    @Column(name = "area_name", nullable = true)
+    private String area;
+
+    @Column(name = "short_bio", nullable = true, columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "profile_picture", nullable = true, columnDefinition = "LONGBLOB")
+    private byte[] profilePicture;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JsonManagedReference
     @JoinTable(name = "signupuser_roles", joinColumns = @JoinColumn(name = "user_email", referencedColumnName = "email"), inverseJoinColumns = @JoinColumn(name = "role_id"))
@@ -48,7 +63,7 @@ public class User {
 
     @OneToOne(mappedBy = "user", cascade = { CascadeType.REMOVE, CascadeType.MERGE,
             CascadeType.PERSIST }, orphanRemoval = true)
-    @Column(nullable = true)
-    private List<Volunteer> volunteers;
+    @JoinColumn(nullable = true)
+    private Volunteer volunteers;
 
 }

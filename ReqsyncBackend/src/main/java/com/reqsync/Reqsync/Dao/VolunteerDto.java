@@ -1,4 +1,4 @@
-package com.reqsync.Reqsync.Dto;
+package com.reqsync.Reqsync.Dao;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;

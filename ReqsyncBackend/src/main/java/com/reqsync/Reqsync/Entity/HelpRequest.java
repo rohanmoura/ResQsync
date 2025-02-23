@@ -9,6 +9,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,6 +17,7 @@ import lombok.Setter;
 @Table
 @Getter
 @Setter
+@Builder
 public class HelpRequest {
 
     @Id
