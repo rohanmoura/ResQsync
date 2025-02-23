@@ -88,3 +88,26 @@ code {
     @apply bg-background text-foreground;
   }
 }
+
+/* Add this to your global CSS file or styled-components */
+@keyframes glowAnimation {
+  0% {
+    box-shadow: 0 0 10px 2px #ff5733;
+  }
+  25% {
+    box-shadow: 0 0 10px 2px #33ff57;
+  }
+  50% {
+    box-shadow: 0 0 10px 2px #3357ff;
+  }
+  75% {
+    box-shadow: 0 0 10px 2px #f1c40f;
+  }
+  100% {
+    box-shadow: 0 0 10px 2px #ff5733;
+  }
+}
+
+.glow-effect {
+  animation: glowAnimation 3s infinite;
+}

@@ -10,12 +10,23 @@ import { BorderTrail } from "@/components/core/border-trail";
 import { TextRoll } from "@/components/core/text-roll";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { ArrowRight } from "lucide-react";
+import { toast } from "sonner";
 
 export default function SignUpPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
+
+    const showAccountCreatedToast = () => {
+        toast("Account Created Successfully", {
+            description: "Your account has been successfully created. You can now log in.",
+            action: {
+                label: "Log In",
+                onClick: () => router.push("/signin"), // Redirect to the login page
+            },
+        });
+    };
 
     const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -27,8 +38,8 @@ export default function SignUpPage() {
                 password,
             });
 
+            showAccountCreatedToast()
             // Agar response successful hai to aap yahan se koi additional process kar sakte hain
-            router.push("/signin");
         } catch (err: any) {
             console.error("Sign up error: ", err);
             setError(err.response?.data?.message || "Sign up failed");

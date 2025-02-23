@@ -10,7 +10,8 @@ import { BorderTrail } from "@/components/core/border-trail";
 import { TextRoll } from "@/components/core/text-roll";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { ArrowRight } from "lucide-react";
-import {jwtDecode} from "jwt-decode"; // Import jwtDecode
+import { jwtDecode } from "jwt-decode"; // Import jwtDecode
+import { toast } from "sonner";
 
 
 export default function SignInPage() {
@@ -18,44 +19,42 @@ export default function SignInPage() {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const router = useRouter();
-    
+
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
-    
+
         try {
             const response = await axios.post("http://localhost:8081/api/auth/login", {
                 email,
                 password,
             });
-    
-            console.log("Full Response: ", response); // Debugging line
 
+            console.log("Full Response: ", response); // Debugging line
             // Get the token from the response
-            const token = response.headers["authorization"];  
+            const token = response.headers["authorization"];
             console.log("Token: ", token); // Debugging line
-            
-    
-            if (token && typeof token === 'string') {
+
+            if (token && typeof token === "string") {
                 let jwt = token; // Default token
-    
+
                 // Check if the token starts with "Bearer " and remove it
                 if (jwt.startsWith("Bearer ")) {
                     jwt = jwt.split(" ")[1]; // Remove "Bearer "
                 }
-    
+
                 // Decode the JWT token
                 const decodedToken = jwtDecode(jwt);
-                const expirationTime = decodedToken.exp; // ✅ Extracts exp from token
-    
+                const expirationTime = decodedToken.exp; // Extracts exp from token
+
                 // Save the decoded token to localStorage
-                localStorage.setItem("jwtToken" , jwt);
+                localStorage.setItem("jwtToken", jwt);
                 if (expirationTime) {
-                    localStorage.setItem("jwtExp", expirationTime.toString()); // ✅ Store expiration time
+                    localStorage.setItem("jwtExp", expirationTime.toString()); // Store expiration time
                 } else {
                     throw new Error("Expiration time not found in token");
                 }
-    
+
                 // Redirect the user to the homepage
                 router.push("/");
             } else {
@@ -63,10 +62,35 @@ export default function SignInPage() {
             }
         } catch (err: any) {
             console.error("Login error: ", err);
-            setError(err.response?.data?.message || "Login failed");
+
+            // Check if the error message indicates that the account does not exist
+            const errorMessage = err.response?.data?.message || "Login failed";
+
+            if (errorMessage.includes("account not found") || errorMessage.includes("user not found")) {
+                // Show a custom error toast
+                toast.error("Account Not Found", {
+                    description: "It seems like your account doesn't exist. Please sign up first.",
+                    action: {
+                        label: "Sign Up",
+                        onClick: () => router.push("/signup"), // Redirect to the signup page
+                    },
+                });
+
+                // Optionally, redirect the user to the sign-up page after a short delay
+                setTimeout(() => {
+                    router.push("/signup");
+                }, 3000); // Redirect after 3 seconds
+            } else {
+                // For other errors, set the error state or show a generic toast
+                setError(errorMessage);
+                toast.error("Login Failed", {
+                    description: errorMessage,
+                });
+            }
         }
     };
-    
+
+
 
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background px-4">

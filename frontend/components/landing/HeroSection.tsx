@@ -31,6 +31,18 @@ export default function HeroSection() {
     }
   };
 
+  const handleVolunteerClick = () => {
+    if (!isAuthenticated) {
+      toast("Authentication Required", {
+        description: "To volunteer, please sign up first.",
+        action: {
+          label: "Sign Up",
+          onClick: () => router.push("/signup"),
+        },
+      });
+    }
+  };
+
   return (
     <section id="about" className="w-full min-h-screen flex items-center justify-center relative">
       <div className="w-full px-4 sm:px-6 lg:px-8 text-center space-y-6 z-10">
@@ -100,7 +112,7 @@ export default function HeroSection() {
               size="sm"
               variant="outline"
               className="w-fit bg-white text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg px-6 py-3 animate-bounce"
-              onClick={handleGetHelpClick}
+              onClick={handleVolunteerClick}
             >
               Volunteer
             </Button>
