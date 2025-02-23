@@ -44,10 +44,16 @@ const NewsData = () => {
     const isLastPage = activePage === totalPages;
     const canShowNextPage = paginatedNews.length === cardsPerPage;
 
+    // Scroll to Top Function
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     // Function to change page
     const handlePageChange = (page: number) => {
         if (page >= 1 && page <= totalPages) {
             setActivePage(page);
+            scrollToTop(); // User ko top par le jana jab page change ho
         }
     };
 
@@ -104,23 +110,62 @@ const NewsData = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-full max-w-md">
+                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-full max-w-md flex items-center gap-4">
+                    {/* Previous Button */}
+                    {activePage > 1 && (
+                        <Button
+                            onClick={() => handlePageChange(activePage - 1)}
+                            className="p-2 bg-zinc-800 text-white rounded-full"
+                        >
+                            {"<"}
+                        </Button>
+                    )}
+
+                    {/* Carousel Content */}
                     <Carousel>
-                        <CarouselContent>
-                            {[...Array(totalPages).keys()]
-                                .filter(num => num + 1 !== totalPages || canShowNextPage) // Last page ke baad extra page nahi dikhayega
-                                .map((num) => (
-                                    <CarouselItem key={num} className='p-2 cursor-pointer'>
-                                        <div
-                                            className={`flex w-8 h-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-sm font-medium ${activePage === num + 1 ? 'bg-black text-white' : 'bg-white text-black'}`}
-                                            onClick={() => handlePageChange(num + 1)}
-                                        >
-                                            {num + 1}
-                                        </div>
-                                    </CarouselItem>
-                                ))}
+                        <CarouselContent className="flex items-center gap-2">
+                            {/* Left Page */}
+                            {activePage > 1 && (
+                                <CarouselItem className="p-2 cursor-pointer">
+                                    <div
+                                        className="flex w-8 h-8 items-center justify-center rounded-full bg-white text-black border border-zinc-300"
+                                        onClick={() => handlePageChange(activePage - 1)}
+                                    >
+                                        {activePage - 1}
+                                    </div>
+                                </CarouselItem>
+                            )}
+
+                            {/* Active Page */}
+                            <CarouselItem className="p-2 cursor-pointer">
+                                <div className="flex w-8 h-8 items-center justify-center rounded-full bg-black text-white border border-zinc-300">
+                                    {activePage}
+                                </div>
+                            </CarouselItem>
+
+                            {/* Right Page */}
+                            {canShowNextPage && (
+                                <CarouselItem className="p-2 cursor-pointer">
+                                    <div
+                                        className="flex w-8 h-8 items-center justify-center rounded-full bg-white text-black border border-zinc-300"
+                                        onClick={() => handlePageChange(activePage + 1)}
+                                    >
+                                        {activePage + 1}
+                                    </div>
+                                </CarouselItem>
+                            )}
                         </CarouselContent>
                     </Carousel>
+
+                    {/* Next Button */}
+                    {canShowNextPage && (
+                        <Button
+                            onClick={() => handlePageChange(activePage + 1)}
+                            className="p-2 bg-zinc-800 text-white rounded-full"
+                        >
+                            {">"}
+                        </Button>
+                    )}
                 </div>
             )}
         </div>
