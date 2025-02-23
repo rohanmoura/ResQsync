@@ -11,23 +11,20 @@ import { BorderTrail } from "@/components/core/border-trail";
 import { AnimatedGroup } from "@/components/core/animated-group";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { Tilt } from "@/components/core/tilt";
-import { Carousel, CarouselContent, CarouselIndicator, CarouselItem, CarouselNavigation } from "@/components/ui/carousel";
+import { Carousel, CarouselContent, CarouselItem } from "@/components/ui/carousel";
 
 const NewsData = () => {
     const [activePage, setActivePage] = useState(1);
     const [loading, setLoading] = useState(false);
     const [newsData, setNewsData] = useState([]);
+    const cardsPerPage = 12; // Fixed number of cards per page
 
     useEffect(() => {
         const fetchNews = async () => {
             setLoading(true);
             try {
-                const response = await axios.get(`http://localhost:8081/api/news/pandemic?page=${activePage}`);
-                if (response.data.length === 16) {
-                    setNewsData(response.data);
-                } else {
-                    setNewsData([]);
-                }
+                const response = await axios.get("http://localhost:8081/api/news/pandemic");
+                setNewsData(response.data || []);
             } catch (error) {
                 console.error("Error fetching news data:", error);
                 setNewsData([]);
@@ -35,10 +32,21 @@ const NewsData = () => {
             setLoading(false);
         };
         fetchNews();
-    }, [activePage]);
+    }, []);
 
+    // Total number of pages dynamically
+    const totalPages = Math.ceil(newsData.length / cardsPerPage);
+
+    // Current page ka data slice karega
+    const paginatedNews = newsData.slice((activePage - 1) * cardsPerPage, activePage * cardsPerPage);
+
+    // Agar last page pe 12 se kam cards ho, next page remove ho jaye
+    const isLastPage = activePage === totalPages;
+    const canShowNextPage = paginatedNews.length === cardsPerPage;
+
+    // Function to change page
     const handlePageChange = (page: number) => {
-        if (newsData.length === 16 || page === 1) {
+        if (page >= 1 && page <= totalPages) {
             setActivePage(page);
         }
     };
@@ -66,9 +74,9 @@ const NewsData = () => {
             )}
 
             {/* News Cards */}
-            {!loading && newsData.length > 0 && (
+            {!loading && paginatedNews.length > 0 && (
                 <AnimatedGroup className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-                    {newsData.map((news, index) => (
+                    {paginatedNews.map((news, index) => (
                         <Tilt key={index} rotationFactor={8} isRevese>
                             <div className="relative overflow-hidden rounded-md border border-zinc-950/10 bg-white text-zinc-700 dark:border-zinc-50/20 dark:bg-zinc-950 dark:text-zinc-300">
                                 <BorderTrail className='bg-linear-to-l from-blue-200 via-blue-500 to-blue-200 dark:from-blue-400 dark:via-blue-500 dark:to-blue-700' size={120} />
@@ -94,25 +102,27 @@ const NewsData = () => {
                 </AnimatedGroup>
             )}
 
-            {/* Pagination Carousel */}
-            <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-full max-w-md">
-                <Carousel>
-                    <CarouselContent>
-                        {[...Array(12).keys()].map((num) => (
-                            <CarouselItem key={num} className='p-2 cursor-pointer'>
-                                <div
-                                    className={`flex w-8 h-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-sm font-medium ${activePage === num + 1 ? 'bg-black text-white' : 'bg-white text-black'}`}
-                                    onClick={() => handlePageChange(num + 1)}
-                                >
-                                    {num + 1}
-                                </div>
-                            </CarouselItem>
-                        ))}
-                    </CarouselContent>
-                    <CarouselNavigation alwaysShow />
-                    <CarouselIndicator />
-                </Carousel>
-            </div>
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-full max-w-md">
+                    <Carousel>
+                        <CarouselContent>
+                            {[...Array(totalPages).keys()]
+                                .filter(num => num + 1 !== totalPages || canShowNextPage) // Last page ke baad extra page nahi dikhayega
+                                .map((num) => (
+                                    <CarouselItem key={num} className='p-2 cursor-pointer'>
+                                        <div
+                                            className={`flex w-8 h-8 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-800 text-sm font-medium ${activePage === num + 1 ? 'bg-black text-white' : 'bg-white text-black'}`}
+                                            onClick={() => handlePageChange(num + 1)}
+                                        >
+                                            {num + 1}
+                                        </div>
+                                    </CarouselItem>
+                                ))}
+                        </CarouselContent>
+                    </Carousel>
+                </div>
+            )}
         </div>
     );
 };
