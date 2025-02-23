@@ -6,17 +6,22 @@ import com.reqsync.Reqsync.Dto.HelpRequestDto;
 import com.reqsync.Reqsync.Entity.HelpRequest;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
+import com.reqsync.Reqsync.Events.HelpRequestCreatedEvent;
 import com.reqsync.Reqsync.Repository.HelpRequestRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
-
-import java.util.Optional;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
+@Slf4j
 public class HelpRequestService {
 
     @Autowired
@@ -28,6 +33,10 @@ public class HelpRequestService {
     @Autowired
     private RoleRepository roleRepository;
 
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
+
+    @Transactional
     public void addHelpRequest(HelpRequestDto helpRequestDto) {
         // Check if the current user is authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -35,23 +44,22 @@ public class HelpRequestService {
             throw new IllegalArgumentException("User not authenticated. Please log in first.");
         }
 
-        // Check if the email exists in the user repository
-        String userEmail = helpRequestDto.getEmail();
-        Optional<User> userOptional = userRepository.findByEmail(userEmail);
-        if (userOptional.isEmpty()) {
-            throw new IllegalArgumentException("User not found with email: " + userEmail);
-        }
+        String userEmail = ((UserDetails) authentication.getPrincipal()).getUsername();
+        log.debug("Here is the email  : " + userEmail);
 
-        User user = userOptional.get();
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found with email: " + userEmail));
 
         // Check if the user already has the "HELP_REQUESTER" role
         Roles helpRequesterRole = roleRepository.findByRole("HELPREQUESTER");
+        Roles volunteerRoles = roleRepository.findByRole("VOLUNTEER");
         if (helpRequesterRole == null) {
             throw new IllegalArgumentException("Role not found: HELP_REQUESTER");
         }
 
-        if (user.getRoles().contains(helpRequesterRole)) {
-            throw new AlreadyUsedEmail("User already has the HelpRequestor role");
+        if (user.getRoles().contains(volunteerRoles)) {
+            throw new AlreadyUsedEmail(
+                    "You already has the HelpRequestor role or you are a volunteer if you are a volunterr then remove your role then ask for help");
         }
 
         if (!user.getRoles().contains(helpRequesterRole)) {
@@ -63,7 +71,7 @@ public class HelpRequestService {
         // Convert HelpRequestDto to HelpRequest entity
         HelpRequest helpRequest = new HelpRequest();
         helpRequest.setName(helpRequestDto.getName());
-        helpRequest.setEmail(userEmail);
+        helpRequest.setUser(user);
         helpRequest.setPhone(helpRequestDto.getPhone());
         helpRequest.setArea(helpRequestDto.getArea());
         helpRequest.setHelpType(helpRequestDto.getHelpType());
@@ -71,6 +79,8 @@ public class HelpRequestService {
 
         // Save the help request to the database
         helpRequestRepository.save(helpRequest);
+        eventPublisher.publishEvent(new HelpRequestCreatedEvent(this, helpRequest)); // ✅ Triggering event
+
     }
 
     public boolean deleteHelpRequestorRole(String email) {

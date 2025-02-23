@@ -2,8 +2,12 @@ package com.reqsync.Reqsync.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,8 +19,13 @@ import lombok.Setter;
 public class HelpRequest {
 
     @Id
-    @Column(name = "email", nullable = false)
-    private String email;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "help_request_id", nullable = false)
+    private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "user_email", nullable = false)
+    private User user; // ✅ Linking HelpRequest to User
 
     @Column(name = "name", nullable = false)
     private String name;

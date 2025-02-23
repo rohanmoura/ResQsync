@@ -1,6 +1,5 @@
 package com.reqsync.Reqsync.JwtConfig;
 
-import java.util.Base64;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,7 +69,7 @@ public class JwtUtil {
                 .header().empty().add("typ", "JWT") // header includes the token type and algo name
                 .and()
                 .issuedAt(new Date(System.currentTimeMillis())) // isse time
-                .expiration(new Date(System.currentTimeMillis() + 1 * 60 * 1000)) // 5 minutes expiration time
+                .expiration(new Date(System.currentTimeMillis() + 20 * 60 * 1000)) // 5 minutes expiration time
                 .signWith(getSigningKey()) // the secret key
                 .compact();
     }
