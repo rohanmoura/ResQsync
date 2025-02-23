@@ -110,12 +110,12 @@ const NewsData = () => {
 
             {/* Pagination Controls */}
             {totalPages > 1 && (
-                <div className="fixed bottom-10 left-1/2 transform -translate-x-1/2 w-full max-w-md flex items-center gap-4">
+                <div className="fixed bottom-6 right-6 flex items-center gap-3 bg-zinc-900/90 text-white px-4 py-2 rounded-lg shadow-lg border border-zinc-700">
                     {/* Previous Button */}
                     {activePage > 1 && (
                         <Button
                             onClick={() => handlePageChange(activePage - 1)}
-                            className="p-2 bg-zinc-800 text-white rounded-full"
+                            className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-zinc-700 hover:bg-zinc-600 transition duration-300"
                         >
                             {"<"}
                         </Button>
@@ -126,9 +126,9 @@ const NewsData = () => {
                         <CarouselContent className="flex items-center gap-2">
                             {/* Left Page */}
                             {activePage > 1 && (
-                                <CarouselItem className="p-2 cursor-pointer">
+                                <CarouselItem className="p-1 cursor-pointer">
                                     <div
-                                        className="flex w-8 h-8 items-center justify-center rounded-full bg-white text-black border border-zinc-300"
+                                        className="flex w-9 h-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 transition duration-300 text-white font-semibold border border-zinc-600"
                                         onClick={() => handlePageChange(activePage - 1)}
                                     >
                                         {activePage - 1}
@@ -137,17 +137,17 @@ const NewsData = () => {
                             )}
 
                             {/* Active Page */}
-                            <CarouselItem className="p-2 cursor-pointer">
-                                <div className="flex w-8 h-8 items-center justify-center rounded-full bg-black text-white border border-zinc-300">
+                            <CarouselItem className="p-1 cursor-pointer">
+                                <div className="flex w-10 h-10 items-center justify-center rounded-md bg-white text-zinc-900 font-bold border border-zinc-500 shadow-lg">
                                     {activePage}
                                 </div>
                             </CarouselItem>
 
                             {/* Right Page */}
                             {canShowNextPage && (
-                                <CarouselItem className="p-2 cursor-pointer">
+                                <CarouselItem className="p-1 cursor-pointer">
                                     <div
-                                        className="flex w-8 h-8 items-center justify-center rounded-full bg-white text-black border border-zinc-300"
+                                        className="flex w-9 h-9 items-center justify-center rounded-md bg-zinc-800 hover:bg-zinc-700 transition duration-300 text-white font-semibold border border-zinc-600"
                                         onClick={() => handlePageChange(activePage + 1)}
                                     >
                                         {activePage + 1}
@@ -161,13 +161,14 @@ const NewsData = () => {
                     {canShowNextPage && (
                         <Button
                             onClick={() => handlePageChange(activePage + 1)}
-                            className="p-2 bg-zinc-800 text-white rounded-full"
+                            className="p-2 w-10 h-10 flex items-center justify-center rounded-full bg-zinc-700 hover:bg-zinc-600 transition duration-300"
                         >
                             {">"}
                         </Button>
                     )}
                 </div>
             )}
+
         </div>
     );
 };
