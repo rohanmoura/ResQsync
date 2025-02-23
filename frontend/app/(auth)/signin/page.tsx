@@ -22,7 +22,7 @@ export default function SignInPage() {
 
     const handleSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-        setError("");
+        setError(""); // Reset previous error
 
         try {
             const response = await axios.post("http://localhost:8081/api/auth/login", {
@@ -30,65 +30,55 @@ export default function SignInPage() {
                 password,
             });
 
-            console.log("Full Response: ", response); // Debugging line
-            // Get the token from the response
+            console.log("Full Response: ", response); // Debugging
             const token = response.headers["authorization"];
-            console.log("Token: ", token); // Debugging line
 
             if (token && typeof token === "string") {
-                let jwt = token; // Default token
+                let jwt = token.startsWith("Bearer ") ? token.split(" ")[1] : token;
 
-                // Check if the token starts with "Bearer " and remove it
-                if (jwt.startsWith("Bearer ")) {
-                    jwt = jwt.split(" ")[1]; // Remove "Bearer "
-                }
-
-                // Decode the JWT token
                 const decodedToken = jwtDecode(jwt);
-                const expirationTime = decodedToken.exp; // Extracts exp from token
+                const expirationTime = decodedToken.exp;
 
-                // Save the decoded token to localStorage
                 localStorage.setItem("jwtToken", jwt);
                 if (expirationTime) {
-                    localStorage.setItem("jwtExp", expirationTime.toString()); // Store expiration time
+                    localStorage.setItem("jwtExp", expirationTime.toString());
                 } else {
                     throw new Error("Expiration time not found in token");
                 }
 
-                // Redirect the user to the homepage
                 router.push("/");
             } else {
                 throw new Error("Token not received");
             }
         } catch (err: any) {
-            console.error("Login error: ", err);
+            console.error("Login error: ", err); // Debugging ke liye
 
-            // Check if the error message indicates that the account does not exist
+            // 🌟 Step 1: Ensure we are getting the correct error message
             const errorMessage = err.response?.data?.message || "Login failed";
+            console.log("Error Message: ", errorMessage); // Debugging ke liye
 
-            if (errorMessage.includes("account not found") || errorMessage.includes("user not found")) {
-                // Show a custom error toast
+            // 🌟 Step 2: Normalize error message to avoid case-sensitive issues
+            const normalizedMessage = errorMessage.toLowerCase();
+
+            // 🌟 Step 3: Only show "Account Not Found" toast for correct errors
+            if (normalizedMessage.includes("account not found") || normalizedMessage.includes("user not found")) {
                 toast.error("Account Not Found", {
                     description: "It seems like your account doesn't exist. Please sign up first.",
                     action: {
                         label: "Sign Up",
-                        onClick: () => router.push("/signup"), // Redirect to the signup page
+                        onClick: () => router.push("/signup"),
                     },
                 });
-
-                // Optionally, redirect the user to the sign-up page after a short delay
-                setTimeout(() => {
-                    router.push("/signup");
-                }, 3000); // Redirect after 3 seconds
-            } else {
-                // For other errors, set the error state or show a generic toast
-                setError(errorMessage);
-                toast.error("Login Failed", {
-                    description: errorMessage,
-                });
+                return; // 🚨 IMPORTANT: Stop execution here so that "Login Failed" toast doesn't show
             }
+
+            // 🌟 Step 4: Show a generic error toast for all other errors
+            toast.error("Login Failed", {
+                description: errorMessage,
+            });
         }
     };
+ 
 
 
 

@@ -12,6 +12,7 @@ import Footer from "@/components/landing/Footer";
 // 1) Import your global Spotlight component
 import { Spotlight } from "@/components/core/spotlight";
 import dynamic from "next/dynamic";
+import DataSection from "@/components/landing/DataSection";
 
 export default function Home() {
   return (
@@ -41,6 +42,9 @@ export default function Home() {
 
         {/* Responsive Features Section */}
         <FeaturesSection />
+
+        {/* New Data Section */}
+        <DataSection />
 
         {/* Responsive How It Works Section */}
         <HowItWorksSection />
