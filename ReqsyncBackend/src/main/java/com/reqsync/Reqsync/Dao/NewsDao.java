@@ -1,4 +1,4 @@
-package com.reqsync.Reqsync.Dto;
+package com.reqsync.Reqsync.Dao;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,7 +11,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Getter
 @Setter
-public class NewsDto {
+public class NewsDao {
     private String title;
     private String description;
     private String url;

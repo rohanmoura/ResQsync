@@ -2,7 +2,7 @@ package com.reqsync.Reqsync.Service;
 
 import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
-import com.reqsync.Reqsync.Dto.HelpRequestDto;
+import com.reqsync.Reqsync.Dao.HelpRequestDao;
 import com.reqsync.Reqsync.Entity.HelpRequest;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
@@ -37,7 +37,7 @@ public class HelpRequestService {
     private ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void addHelpRequest(HelpRequestDto helpRequestDto) {
+    public void addHelpRequest(HelpRequestDao helpRequestDao) {
         // Check if the current user is authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -69,13 +69,14 @@ public class HelpRequestService {
         }
 
         // Convert HelpRequestDto to HelpRequest entity
-        HelpRequest helpRequest = new HelpRequest();
-        helpRequest.setName(helpRequestDto.getName());
-        helpRequest.setUser(user);
-        helpRequest.setPhone(helpRequestDto.getPhone());
-        helpRequest.setArea(helpRequestDto.getArea());
-        helpRequest.setHelpType(helpRequestDto.getHelpType());
-        helpRequest.setMessage(helpRequestDto.getMessage());
+        HelpRequest helpRequest = HelpRequest.builder()
+                .user(user) // ✅ Set the requesting user
+                .name(helpRequestDao.getName())
+                .phone(helpRequestDao.getPhone())
+                .area(helpRequestDao.getArea())
+                .helpType(helpRequestDao.getHelpType())
+                .message(helpRequestDao.getMessage())
+                .build();
 
         // Save the help request to the database
         helpRequestRepository.save(helpRequest);

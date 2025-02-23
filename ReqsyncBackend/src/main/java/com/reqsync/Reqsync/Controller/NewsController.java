@@ -3,7 +3,7 @@ package com.reqsync.Reqsync.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import com.reqsync.Reqsync.Dto.NewsDto;
+import com.reqsync.Reqsync.Dao.NewsDao;
 import com.reqsync.Reqsync.Service.NewsService;
 
 import java.util.List;
@@ -16,7 +16,7 @@ public class NewsController {
     private NewsService newsService;
 
     @GetMapping("/pandemic")
-    public List<NewsDto> fetchPandemicNews() {
+    public List<NewsDao> fetchPandemicNews() {
         return newsService.getPandemicNews();
     }
 }

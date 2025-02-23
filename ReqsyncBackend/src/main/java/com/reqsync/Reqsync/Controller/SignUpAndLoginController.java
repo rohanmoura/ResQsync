@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.reqsync.Reqsync.CustomException.ValidationException;
-import com.reqsync.Reqsync.Dto.UserDTO;
+import com.reqsync.Reqsync.Dao.UserDao;
 import com.reqsync.Reqsync.Entity.User;
 import com.reqsync.Reqsync.JwtConfig.JwtService;
 import com.reqsync.Reqsync.Model.AuthRequest;
@@ -32,7 +32,7 @@ public class SignUpAndLoginController {
     private JwtService jwtService;
 
     @PostMapping("/signup")
-    public ResponseEntity<User> signUp(@Valid @RequestBody UserDTO userDTO, BindingResult bindingResult) {
+    public ResponseEntity<User> signUp(@Valid @RequestBody UserDao userDao, BindingResult bindingResult) {
 
         if (bindingResult.hasErrors()) {
             // Collect all errors into a list of strings
@@ -42,7 +42,7 @@ public class SignUpAndLoginController {
             throw new ValidationException(errors);
         }
 
-        User user = userService.addUser(userDTO);
+        User user = userService.addUser(userDao);
         return ResponseEntity.status(HttpStatus.CREATED).body(user);
     }
 

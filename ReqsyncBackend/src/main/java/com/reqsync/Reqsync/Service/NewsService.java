@@ -7,7 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import com.reqsync.Reqsync.Dto.NewsDto;
+import com.reqsync.Reqsync.Dao.NewsDao;
 
 import java.util.List;
 import java.util.Map;
@@ -24,7 +24,7 @@ public class NewsService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public List<NewsDto> getPandemicNews() {
+    public List<NewsDao> getPandemicNews() {
         String url = apiUrl + "?q=pandemic OR disease OR virus&apiKey=" + apiKey;
 
         ResponseEntity<Map<String, Object>> responseEntity = restTemplate.exchange(
@@ -38,7 +38,7 @@ public class NewsService {
             List<Map<String, Object>> articles = (List<Map<String, Object>>) response.get("articles");
 
             return articles.stream()
-                    .map(article -> new NewsDto(
+                    .map(article -> new NewsDao(
                             getStringOrDefault(article.get("title"), "No title available"),
                             getStringOrDefault(article.get("description"), "No description available"),
                             getStringOrDefault(article.get("url"), "#"),

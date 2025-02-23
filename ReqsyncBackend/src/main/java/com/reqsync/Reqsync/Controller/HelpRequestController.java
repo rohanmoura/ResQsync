@@ -7,7 +7,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
-import com.reqsync.Reqsync.Dto.HelpRequestDto;
+import com.reqsync.Reqsync.Dao.HelpRequestDao;
 import com.reqsync.Reqsync.Service.HelpRequestService;
 
 import jakarta.validation.Valid;
@@ -26,7 +26,7 @@ public class HelpRequestController {
      * Endpoint to submit a new help request with validation.
      */
     @PostMapping("/submit")
-    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestDto helpRequestDto,
+    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestDao helpRequestDao,
             BindingResult bindingResult) {
         // Check for validation errors
         if (bindingResult.hasErrors()) {
@@ -38,7 +38,7 @@ public class HelpRequestController {
         }
 
         try {
-            helpRequestService.addHelpRequest(helpRequestDto);
+            helpRequestService.addHelpRequest(helpRequestDao);
             return new ResponseEntity<>("Help request submitted successfully!", HttpStatus.CREATED);
         } catch (IllegalArgumentException e) {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);

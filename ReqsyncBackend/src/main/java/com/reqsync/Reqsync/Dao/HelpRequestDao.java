@@ -1,11 +1,25 @@
-package com.reqsync.Reqsync.Dto;
+package com.reqsync.Reqsync.Dao;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Data
-public class HelpRequestDto {
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@Builder
+public class HelpRequestDao {
+
+    @Null(message = "ID should not be provided.") // Allows ID to be null
+    private Long id;
 
     @NotBlank(message = "Name is required.")
     @Size(max = 50, message = "Name must be less than 50 characters.")
