@@ -196,12 +196,15 @@ function ProfileCard() {
 
     // Handle logout
     const handleLogout = () => {
+        console.log("Logout triggered");
         localStorage.removeItem("jwtToken");
+        console.log("Token after removal:", localStorage.getItem("jwtToken")); // Should log null
         toast("Logged out", {
             description: "You have been logged out successfully.",
         });
-        router.push("/");
+        router.push("/signin"); // Redirect to a dedicated login page
     };
+
 
     // Updated image resolution logic:
     // - If profilePicture starts with "http", it's an absolute URL.
