@@ -50,6 +50,7 @@ type EditProfileFormProps = {
         phone?: string;
         area?: string;
         bio?: string;
+        // avatarUrl is stored as a relative path or full URL
         avatarUrl: string | null;
     };
 };
@@ -68,6 +69,8 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
         },
     });
 
+    // currentAvatarUrl holds either the initial avatar (as passed from userProfile)
+    // or a temporary Object URL when the user selects a file.
     const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(userProfile.avatarUrl);
     const [avatarRemoved, setAvatarRemoved] = useState(false);
 
@@ -93,18 +96,26 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
         }
     }, [userProfile]);
 
-    // Submission passes removeAvatar flag.
+    // On submission, include the removeAvatar flag.
     const onSubmit = (values: FormValues) => {
         onSaveProfile({ ...values, removeAvatar: avatarRemoved });
     };
 
-    // Separate ref for file input to clear value.
+    // Separate ref for file input to clear its value
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { ref: formFileRef } = form.register("profilePicture");
+
+    // If the current avatar URL is a relative path, prepend the base URL.
+    const previewUrl = currentAvatarUrl
+        ? currentAvatarUrl.startsWith("http")
+            ? currentAvatarUrl
+            : `http://localhost:8081/${currentAvatarUrl}`
+        : null;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (file) {
+            // Create a temporary URL for preview.
             setCurrentAvatarUrl(URL.createObjectURL(file));
             setAvatarRemoved(false);
             form.setValue("profilePicture", file);
@@ -135,10 +146,10 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
 
                 {/* Avatar Preview & File Input */}
                 <div className="flex flex-col items-center space-y-2">
-                    {currentAvatarUrl ? (
+                    {previewUrl ? (
                         <div className="relative">
                             <img
-                                src={currentAvatarUrl}
+                                src={previewUrl}
                                 alt="Avatar Preview"
                                 className="w-24 h-24 rounded-full object-cover"
                             />
