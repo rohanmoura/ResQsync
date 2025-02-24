@@ -50,7 +50,7 @@ type EditProfileFormProps = {
         phone?: string;
         area?: string;
         bio?: string;
-        // avatarUrl is stored as a relative path or full URL
+        // Here, avatarUrl may be a relative URL, absolute URL, or base64 encoded string.
         avatarUrl: string | null;
     };
 };
@@ -69,8 +69,7 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
         },
     });
 
-    // currentAvatarUrl holds either the initial avatar (as passed from userProfile)
-    // or a temporary Object URL when the user selects a file.
+    // currentAvatarUrl holds initial avatar or temporary URL when file is selected.
     const [currentAvatarUrl, setCurrentAvatarUrl] = useState<string | null>(userProfile.avatarUrl);
     const [avatarRemoved, setAvatarRemoved] = useState(false);
 
@@ -96,26 +95,28 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
         }
     }, [userProfile]);
 
-    // On submission, include the removeAvatar flag.
     const onSubmit = (values: FormValues) => {
         onSaveProfile({ ...values, removeAvatar: avatarRemoved });
     };
 
-    // Separate ref for file input to clear its value
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { ref: formFileRef } = form.register("profilePicture");
 
-    // If the current avatar URL is a relative path, prepend the base URL.
+    // Updated previewUrl logic:
+    // - If avatarUrl starts with "http", use it directly.
+    // - Else if its length > 100, assume base64 and prepend data URI prefix.
+    // - Otherwise, treat as relative URL.
     const previewUrl = currentAvatarUrl
         ? currentAvatarUrl.startsWith("http")
             ? currentAvatarUrl
-            : `http://localhost:8081/${currentAvatarUrl}`
+            : currentAvatarUrl.length > 100
+                ? `data:image/png;base64,${currentAvatarUrl}`
+                : `http://localhost:8081/${currentAvatarUrl}`
         : null;
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (file) {
-            // Create a temporary URL for preview.
             setCurrentAvatarUrl(URL.createObjectURL(file));
             setAvatarRemoved(false);
             form.setValue("profilePicture", file);

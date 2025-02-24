@@ -17,7 +17,6 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Pencil, ArrowLeft } from "lucide-react";
-// Shadcn Dialog components
 import {
     Dialog,
     DialogTrigger,
@@ -25,14 +24,13 @@ import {
     DialogTitle,
     DialogClose,
 } from "@/components/ui/dialog";
-// Import toast from sonner
 import { toast } from "sonner";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { TextShimmer } from "@/components/core/text-shimmer";
 import { withAuth } from "@/app/_components/withAuth";
 import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
 
-// Helper: Mask phone number (e.g., "1234567890" → "12******90")
+// Helper: Mask phone number
 function maskPhoneNumber(phone: string): string {
     if (!phone) return "";
     if (phone.length < 4) return phone;
@@ -46,15 +44,17 @@ function ProfileCard() {
     const router = useRouter();
     const { theme, setTheme } = useTheme();
     const [isDark, setIsDark] = useState(false);
+
     useEffect(() => {
         setIsDark(theme === "dark");
     }, [theme]);
+
     const handleDarkModeToggle = (checked: boolean) => {
         setIsDark(checked);
         setTheme(checked ? "dark" : "light");
     };
 
-    // User profile state (fetched from API)
+    // User profile state
     const [userProfile, setUserProfile] = useState({
         name: "Default User",
         email: "user@gmail.com",
@@ -62,8 +62,10 @@ function ProfileCard() {
         phone: "",
         area: "",
         bio: "",
-        avatarUrl: null as string | null,
+        // profilePicture from API, may be base64 or URL/relative path.
+        profilePicture: null as string | null,
     });
+
     // Dialog open state
     const [open, setOpen] = useState(false);
 
@@ -87,7 +89,7 @@ function ProfileCard() {
                     phone: data.phone || "",
                     area: data.area || "",
                     bio: data.bio || "",
-                    avatarUrl: data.profilePicture || null,
+                    profilePicture: data.profilePicture || null,
                 });
             })
             .catch((error) => {
@@ -96,7 +98,7 @@ function ProfileCard() {
             });
     }, [router]);
 
-    // Handle profile save: call update-profile endpoint then update state.
+    // Handle profile save
     const handleProfileSave = async (data: {
         name?: string;
         phone?: string;
@@ -112,23 +114,18 @@ function ProfileCard() {
                 return;
             }
 
-            // Build a FormData payload for multipart upload.
+            // Build FormData payload
             const formData = new FormData();
-            // Always include the updated fields (even if empty strings)
             formData.append("name", data.name ?? "");
             formData.append("phone", data.phone ?? "");
             formData.append("area", data.area ?? "");
             formData.append("bio", data.bio ?? "");
-            // For the profile picture, if the user removed it, we may omit it or include a flag.
             if (!data.removeAvatar && data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
             } else {
-                // Optionally, if your backend needs a flag in the form data,
-                // you can send removeAvatar as well:
                 formData.append("removeAvatar", "true");
             }
 
-            // Call the update-profile endpoint.
             const response = await axios.post(
                 "http://localhost:8081/api/user/update-profile",
                 formData,
@@ -140,7 +137,6 @@ function ProfileCard() {
                 }
             );
 
-            // Assume the API returns the updated user profile.
             const updatedData = response.data;
             setUserProfile({
                 name: updatedData.name || "Default User",
@@ -152,7 +148,7 @@ function ProfileCard() {
                 phone: updatedData.phone || "",
                 area: updatedData.area || "",
                 bio: updatedData.bio || "",
-                avatarUrl: updatedData.profilePicture || null,
+                profilePicture: updatedData.profilePicture || null,
             });
 
             toast("Profile updated", {
@@ -165,12 +161,16 @@ function ProfileCard() {
         }
     };
 
-    // If the backend returns only a relative path for the image,
-    // construct a full URL for the <img> tag.
-    const resolvedAvatarUrl = userProfile.avatarUrl
-        ? userProfile.avatarUrl.startsWith("http")
-            ? userProfile.avatarUrl
-            : `http://localhost:8081/${userProfile.avatarUrl}`
+    // Updated image resolution logic:
+    // - If profilePicture starts with "http", it's an absolute URL.
+    // - Else, if its length > 100, assume it's base64 encoded and prepend proper prefix.
+    // - Otherwise, treat it as a relative URL.
+    const resolvedAvatarUrl = userProfile.profilePicture
+        ? userProfile.profilePicture.startsWith("http")
+            ? userProfile.profilePicture
+            : userProfile.profilePicture.length > 100
+                ? `data:image/png;base64,${userProfile.profilePicture}`
+                : `http://localhost:8081/${userProfile.profilePicture}`
         : null;
 
     // Determine fallback letter.
@@ -235,7 +235,11 @@ function ProfileCard() {
                             >
                                 <DialogTitle className="sr-only">Edit Profile</DialogTitle>
                                 <EditProfileFormWrapper
-                                    userProfile={userProfile}
+                                    userProfile={{
+                                        ...userProfile,
+                                        // Rename property for form component consistency
+                                        avatarUrl: userProfile.profilePicture,
+                                    }}
                                     onSaveProfile={handleProfileSave}
                                 />
                                 <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
@@ -259,7 +263,7 @@ function ProfileCard() {
                                 )}
                             </Avatar>
 
-                            {/* Main Info: Name, Email, Role */}
+                            {/* Main Info */}
                             <div className="flex flex-col items-center gap-2">
                                 <TextShimmer className="text-2xl font-bold" duration={1.5}>
                                     {userProfile.name}
@@ -270,7 +274,6 @@ function ProfileCard() {
                                 <p className="text-muted-foreground text-sm">
                                     {`Role: ${userProfile.role}`}
                                 </p>
-                                {/* Additional Info: Phone, Area, Bio */}
                                 {(userProfile.phone || userProfile.area || userProfile.bio) && (
                                     <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
                                         {userProfile.phone && (
