@@ -17,18 +17,24 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.reqsync.Reqsync.Config.EncoderConfig;
 import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
+import com.reqsync.Reqsync.CustomException.ImageNotSaved;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
-import com.reqsync.Reqsync.Dao.HelpRequestDao;
-import com.reqsync.Reqsync.Dao.UserDao;
-import com.reqsync.Reqsync.Dao.UserProfileDao;
-import com.reqsync.Reqsync.Dto.AllDto;
+import com.reqsync.Reqsync.Dto.UserDto;
+
+import com.reqsync.Reqsync.Dto.UserProfileDto;
+import com.reqsync.Reqsync.Dto.UserUpdateDto;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
+
+import com.reqsync.Reqsync.Mapper.HelpRequestMapper;
 import com.reqsync.Reqsync.Repository.HelpRequestRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
 
+import lombok.extern.slf4j.Slf4j;
+
 @Service
+@Slf4j
 public class UserService {
 
     @Autowired
@@ -44,7 +50,7 @@ public class UserService {
     private HelpRequestRepository helpRequestRepository;
 
     @Autowired
-    private AllDto allDto;
+    private HelpRequestMapper helpRequestMapper;
 
     @Transactional
     public User addDaoUser(User user) {
@@ -64,7 +70,7 @@ public class UserService {
     }
 
     @Transactional
-    public User addUser(UserDao userDao) {
+    public User addUser(UserDto userDao) {
         Optional<User> existingUser = userRepository.findByEmail(userDao.getEmail());
         existingUser.ifPresent(u -> {
             throw new AlreadyUsedEmail("The email is already present, try with something else");
@@ -85,7 +91,7 @@ public class UserService {
         return user;
     }
 
-    public UserProfileDao getUserInfo() {
+    public UserProfileDto getUserInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = ((UserDetails) authentication.getPrincipal()).getUsername();
 
@@ -101,23 +107,23 @@ public class UserService {
                 .map(Roles::getRole) // Assuming Roles entity has a `getRole()` method
                 .collect(Collectors.toList());
 
-        List<HelpRequestDao> helpRequests = new ArrayList<>();
+        List<?> helpRequests = new ArrayList<>();
 
         if (isVolunteer) {
             // Fetch all help requests
             helpRequests = helpRequestRepository.findAll()
                     .stream()
-                    .map(allDto::convertToHelpRequestDto)
+                    .map(helpRequestMapper::toVolunterrDto)
                     .collect(Collectors.toList());
         } else if (isHelpRequester) {
             // Fetch only the user's help requests
             helpRequests = user.getHelpRequests()
                     .stream()
-                    .map(allDto::convertToHelpRequestDto)
+                    .map(helpRequestMapper::toRequestDto)
                     .collect(Collectors.toList());
         }
 
-        return UserProfileDao.builder()
+        return UserProfileDto.builder()
                 .email(user.getEmail())
                 .roles(roles)
                 .name(user.getName())
@@ -132,8 +138,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserProfileDao updateUserProfile(MultipartFile profilePicture, UserProfileDao userProfileDto)
-            throws IOException {
+    public UserProfileDto updateUserProfile(MultipartFile profilePicture, UserUpdateDto updateDto) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = ((UserDetails) authentication.getPrincipal()).getUsername();
 
@@ -141,24 +146,29 @@ public class UserService {
                 .orElseThrow(() -> new UsersNotFound("User not found with email: " + email));
 
         // Update user details if provided
-        if (userProfileDto.getName() != null)
-            user.setName(userProfileDto.getName());
-        if (userProfileDto.getPhone() != null)
-            user.setPhone(userProfileDto.getPhone());
-        if (userProfileDto.getArea() != null)
-            user.setArea(userProfileDto.getArea());
-        if (userProfileDto.getBio() != null)
-            user.setBio(userProfileDto.getBio());
+        if (updateDto.getName() != null)
+            user.setName(updateDto.getName());
+        if (updateDto.getPhone() != null)
+            user.setPhone(updateDto.getPhone());
+        if (updateDto.getArea() != null)
+            user.setArea(updateDto.getArea());
+        if (updateDto.getBio() != null)
+            user.setBio(updateDto.getBio());
 
         // Update profile picture if a new one is provided
         if (profilePicture != null && !profilePicture.isEmpty()) {
-            user.setProfilePicture(profilePicture.getBytes());
+            try {
+                // Check if the user has no profile picture OR wants to update it
+                if (user.getProfilePicture() == null || profilePicture.getSize() > 0) {
+                    user.setProfilePicture(profilePicture.getBytes());
+                }
+            } catch (IOException e) {
+                throw new ImageNotSaved("The Image is not saved because of this error: " + e.getMessage());
+            }
         }
-
-        // Save the updated user details
         userRepository.save(user);
 
-        return UserProfileDao.builder()
+        return UserProfileDto.builder()
                 .email(user.getEmail())
                 .name(user.getName())
                 .phone(user.getPhone())
@@ -169,6 +179,22 @@ public class UserService {
                                 : null)
                 .roles(user.getRoles().stream().map(Roles::getRole).collect(Collectors.toList()))
                 .build();
+    }
+
+    public boolean deleteUser() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        String email = ((UserDetails) authentication.getPrincipal()).getUsername();
+
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsersNotFound("User not found with email: " + email));
+
+        try {
+            userRepository.delete(user);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+
     }
 
     public boolean userNotExist(String email) {

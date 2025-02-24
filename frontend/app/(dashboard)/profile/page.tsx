@@ -145,12 +145,13 @@ function ProfileCard() {
                 formData.append("profilePicture", data.profilePicture);
             }
 
-            const response = await axios.put(
+            const response = await axios.post(
                 "http://localhost:8081/api/user/update-profile",
                 formData,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
+                        "Content-Type": "multipart/form-data", // Let Axios handle boundary
                         // Note: Let Axios set the correct Content-Type with boundary.
                     },
                 }
@@ -209,7 +210,7 @@ function ProfileCard() {
         toast("Logged out", {
             description: "You have been logged out successfully.",
         });
-        router.push("/signin"); // Redirect to a dedicated login page
+        router.push("/"); // Redirect to a dedicated login page
     };
 
 

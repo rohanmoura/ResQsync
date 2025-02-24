@@ -1,6 +1,7 @@
-package com.reqsync.Reqsync.Dao;
+package com.reqsync.Reqsync.Dto;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -26,4 +27,7 @@ public class VolunteerDto {
     @NotBlank(message = "Area is required.")
     @Size(max = 100, message = "Area name must be less than 100 characters.")
     private String area;
+
+    @Null(message = "About should not be provided.")
+    private String about;
 }

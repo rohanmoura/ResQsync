@@ -1,4 +1,4 @@
-package com.reqsync.Reqsync.Dao;
+package com.reqsync.Reqsync.Dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -10,7 +10,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class UserDao {
+public class UserDto {
     @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     private String email;

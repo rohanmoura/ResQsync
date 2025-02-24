@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.reqsync.Reqsync.Dao.VolunteerDto;
+import com.reqsync.Reqsync.Dto.VolunteerDto;
 import com.reqsync.Reqsync.Service.VolunteerService;
 
 import jakarta.validation.Valid;
@@ -32,17 +32,7 @@ public class VolunteerController {
      * Endpoint to add a new volunteer with validation.
      */
     @PostMapping("/add")
-    public ResponseEntity<String> addVolunteer(@Valid @RequestBody VolunteerDto volunteerDto,
-            BindingResult bindingResult) {
-        // Check for validation errors
-        if (bindingResult.hasErrors()) {
-            // Collect all errors into a list of strings
-            List<String> errors = bindingResult.getFieldErrors().stream()
-                    .map(error -> error.getField() + ": " + error.getDefaultMessage())
-                    .collect(Collectors.toList());
-            return new ResponseEntity<>(String.join(", ", errors), HttpStatus.BAD_REQUEST);
-        }
-
+    public ResponseEntity<String> addVolunteer(@Valid @RequestBody VolunteerDto volunteerDto) {
         try {
             volunteerService.addVolunteer(volunteerDto);
             return new ResponseEntity<>("Volunteer added successfully!", HttpStatus.CREATED);

@@ -39,5 +39,12 @@ public class Initializer {
             volunteerRole.setRole("VOLUNTEER");
             roleRepository.save(volunteerRole);
         }
+
+        if (!roleRepository.existsByRole("MANAGER")) {
+            Roles managRoles = new Roles();
+            managRoles.setRole("MANAGER");
+            roleRepository.save(managRoles);
+        }
+
     }
 }

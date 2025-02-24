@@ -11,10 +11,14 @@ import com.reqsync.Reqsync.CustomException.HelpRequestorAccessed;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.CustomException.VolunteerAccessed;
 import com.reqsync.Reqsync.CustomException.WrongAuthenticationCredentials;
-import com.reqsync.Reqsync.Dao.VolunteerDto;
+import com.reqsync.Reqsync.Dto.VolunteerDto;
+import com.reqsync.Reqsync.Entity.HelpRequest;
+import com.reqsync.Reqsync.Entity.RequestStatus;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
 import com.reqsync.Reqsync.Entity.Volunteer;
+import com.reqsync.Reqsync.Entity.VolunteerResolution;
+import com.reqsync.Reqsync.Repository.HelpRequestRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
 import com.reqsync.Reqsync.Repository.VolunteerRepository;
@@ -27,6 +31,9 @@ public class VolunteerService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private HelpRequestRepository helpRequestRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -72,16 +79,22 @@ public class VolunteerService {
         }
 
         // Convert VolunteerDto to Volunteer entity
+        if (user.getName() == null || user.getPhone() == null || user.getArea() == null
+                || user.getProfilePicture() == null) {
+            throw new IllegalArgumentException("User details are incomplete. Please update your profile first.");
+
+        }
         Volunteer volunteer = new Volunteer();
-        volunteer.setName(volunteerDto.getName());
+        volunteer.setName(user.getName());
         volunteer.setUser(user);
-        volunteer.setPhone(volunteerDto.getPhone());
-        volunteer.setArea(volunteerDto.getArea());
+        volunteer.setPhone(user.getPhone());
+        volunteer.setArea(user.getArea());
+        volunteer.setAbout(volunteerDto.getAbout());
 
         // Save the volunteer to the database
         volunteerRepository.save(volunteer);
         emailService.sendVolunteerWelcomeEmail(user.getEmail(),
-                volunteerDto.getName());
+                user.getName());
     }
 
     public boolean deleteVolunteerRole(String email) {
@@ -98,9 +111,31 @@ public class VolunteerService {
                 throw new IllegalArgumentException("User does not have the VOLUNTEER role");
             }
             user.getRoles().remove(volunteerRole);
+            volunteerRepository.deleteByUser(user);
             userRepository.save(user);
             return true;
         }
         return false;
+    }
+
+    public boolean confirmRequestStatus(Long id, Long vId) {
+
+        HelpRequest helpRequest = helpRequestRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Help request not found with id: " + id));
+
+        Volunteer volunteer = volunteerRepository.findById(vId)
+                .orElseThrow(() -> new IllegalArgumentException("Volunteer not found with id: " + vId));
+        if (helpRequest.getStatus() != RequestStatus.PENDING) {
+            throw new IllegalArgumentException("Help request is not pending");
+        }
+        helpRequest.setStatus(RequestStatus.RESOLVED);
+        VolunteerResolution volunteerResolution = new VolunteerResolution();
+        volunteerResolution.setVolunteerId(vId);
+        volunteerResolution.setVolunteerId(id);
+        helpRequestRepository.save(helpRequest);
+        emailService.sendRequestFulfilledEmail(helpRequest.getUser().getEmail(), helpRequest.getUser().getName(),
+                volunteer.getUser().getName(), helpRequest.getHelpType(), volunteerResolution.getResolvedAt());
+
+        return true;
     }
 }

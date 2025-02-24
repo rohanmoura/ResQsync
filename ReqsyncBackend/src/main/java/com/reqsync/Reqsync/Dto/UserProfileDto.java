@@ -1,4 +1,4 @@
-package com.reqsync.Reqsync.Dao;
+package com.reqsync.Reqsync.Dto;
 
 import java.util.List;
 
@@ -13,7 +13,7 @@ import lombok.Setter;
 @AllArgsConstructor
 @Getter
 @Setter
-public class UserProfileDao {
+public class UserProfileDto {
     private String email;
     private String name;
     private String phone;
@@ -21,5 +21,5 @@ public class UserProfileDao {
     private String bio;
     private String profilePicture; // Store as a Base64 string for easy transfer
     private List<String> roles;
-    private List<HelpRequestDao> helpRequests;
+    private List<?> helpRequests;
 }

@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Data;
@@ -36,4 +37,9 @@ public class Volunteer {
 
     @Column(name = "area_name", nullable = false)
     private String area;
+
+    @Lob
+    @Column(columnDefinition = "LONGBLOB", nullable = false)
+    private String about;
+
 }

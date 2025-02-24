@@ -6,8 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
-import com.reqsync.Reqsync.Dao.HelpRequestDao;
+import com.reqsync.Reqsync.Dto.HelpRequestForRequestorDto;
 import com.reqsync.Reqsync.Service.HelpRequestService;
 
 import jakarta.validation.Valid;
@@ -26,7 +25,7 @@ public class HelpRequestController {
      * Endpoint to submit a new help request with validation.
      */
     @PostMapping("/submit")
-    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestDao helpRequestDao,
+    public ResponseEntity<String> submitHelpRequest(@Valid @RequestBody HelpRequestForRequestorDto helpRequestDao,
             BindingResult bindingResult) {
         // Check for validation errors
         if (bindingResult.hasErrors()) {
@@ -54,4 +53,15 @@ public class HelpRequestController {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
+
+    @DeleteMapping("/{id}/deletehelprequest")
+    public ResponseEntity<String> deleteHelpRequest(@RequestParam Long id) {
+        try {
+            helpRequestService.deleteHelpRequest(id);
+            return new ResponseEntity<>("HelpRequest deleted successfully!", HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
 }

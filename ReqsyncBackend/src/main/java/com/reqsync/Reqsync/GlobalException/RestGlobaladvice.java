@@ -6,12 +6,14 @@ import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.MessageNotSended;
 import com.reqsync.Reqsync.CustomException.NoHeader;
+import com.reqsync.Reqsync.CustomException.NoIdexist;
 import com.reqsync.Reqsync.CustomException.NoRowsFound;
 import com.reqsync.Reqsync.CustomException.NoTableFound;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
@@ -85,4 +87,20 @@ public class RestGlobaladvice {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 
+    @ExceptionHandler(NoIdexist.class)
+    public ResponseEntity<Map<String, Object>> handleNoIdExist(NoIdexist ex) {
+        Map<String, Object> response = new HashMap<>();
+        response.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, String>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+
+        ex.getBindingResult().getFieldErrors()
+                .forEach(error -> errors.put(error.getField(), error.getDefaultMessage()));
+
+        return ResponseEntity.badRequest().body(errors);
+    }
 }

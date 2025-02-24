@@ -1,5 +1,7 @@
 package com.reqsync.Reqsync.Service;
 
+import java.time.LocalDateTime;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -70,6 +72,52 @@ public class EmailService {
             mailSender.send(message);
         } catch (MessagingException e) {
             throw new MessageNotSended("Failed to send email.");
+        }
+    }
+
+    public void sendRequestFulfilledEmail(String requestorEmail, String requestorName,
+            String volunteerName, String helpType,
+            LocalDateTime fulfilledTime) {
+        String subject = "Your Help Request Has Been Fulfilled! 🎉";
+
+        String message = """
+                <html>
+                <body>
+                    <p>Dear %s,</p>
+                    <p>We are happy to inform you that your help request for <strong>%s</strong> has been fulfilled by <strong>%s</strong>.</p>
+
+                    <h4>Request Details:</h4>
+                    <ul>
+                        <li><b>Help Type:</b> %s</li>
+                        <li><b>Fulfilled On:</b> %s</li>
+                    </ul>
+
+                    <p>We hope your issue has been resolved to your satisfaction. If there is anything else you need assistance with, feel free to reach out.</p>
+
+                    <p><a href="https://yourwebsite.com/confirm-request"
+                          style="padding: 10px 20px; background-color: #28a745; color: #fff; text-decoration: none; border-radius: 5px;">
+                          Confirm Request Completion
+                       </a></p>
+
+                    <p>Thank you for using our platform to connect with volunteers. We appreciate your trust!</p>
+
+                    <p>Best regards,</p>
+                    <p><strong>The ReqSync Team</strong></p>
+                </body>
+                </html>
+                """
+                .formatted(requestorName, helpType, volunteerName, helpType, fulfilledTime);
+
+        MimeMessage mimeMessage = mailSender.createMimeMessage();
+
+        try {
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+            helper.setTo(requestorEmail);
+            helper.setSubject(subject);
+            helper.setText(message, true); // true for HTML content
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            e.printStackTrace();
         }
     }
 }

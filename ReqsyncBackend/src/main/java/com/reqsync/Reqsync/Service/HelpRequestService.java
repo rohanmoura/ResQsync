@@ -1,8 +1,9 @@
 package com.reqsync.Reqsync.Service;
 
 import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
+import com.reqsync.Reqsync.CustomException.NoIdexist;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
-import com.reqsync.Reqsync.Dao.HelpRequestDao;
+import com.reqsync.Reqsync.Dto.HelpRequestForRequestorDto;
 import com.reqsync.Reqsync.Entity.HelpRequest;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
@@ -37,7 +38,7 @@ public class HelpRequestService {
     private ApplicationEventPublisher eventPublisher;
 
     @Transactional
-    public void addHelpRequest(HelpRequestDao helpRequestDao) {
+    public void addHelpRequest(HelpRequestForRequestorDto helpRequestDao) {
         // Check if the current user is authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -68,12 +69,18 @@ public class HelpRequestService {
             userRepository.save(user); // Save the updated user with the new role
         }
 
+        if (user.getName() == null || user.getPhone() == null || user.getArea() == null
+                || user.getProfilePicture() == null) {
+            throw new IllegalArgumentException("User details are incomplete. Please update your profile first.");
+
+        }
+
         // Convert HelpRequestDto to HelpRequest entity
         HelpRequest helpRequest = HelpRequest.builder()
                 .user(user) // ✅ Set the requesting user
-                .name(helpRequestDao.getName())
-                .phone(helpRequestDao.getPhone())
-                .area(helpRequestDao.getArea())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .area(user.getArea())
                 .helpType(helpRequestDao.getHelpType())
                 .message(helpRequestDao.getMessage())
                 .build();
@@ -84,6 +91,7 @@ public class HelpRequestService {
 
     }
 
+    @Transactional
     public boolean deleteHelpRequestorRole(String email) {
         Roles helpRequestorRoles = roleRepository.findByRole("HELPREQUESTER");
         if (helpRequestorRoles == null) {
@@ -98,9 +106,19 @@ public class HelpRequestService {
                 throw new IllegalArgumentException("User does not have the HELPREQUESTER role");
             }
             user.getRoles().remove(helpRequestorRoles);
+            helpRequestRepository.deleteByUser(user);
             userRepository.save(user);
             return true;
         }
         return false;
+    }
+
+    public boolean deleteHelpRequest(Long id) {
+        if (helpRequestRepository.existsById(id)) {
+            helpRequestRepository.deleteById(id);
+            return true;
+        }
+        throw new NoIdexist("No id exist with this id");
+
     }
 }

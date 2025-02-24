@@ -2,6 +2,8 @@ package com.reqsync.Reqsync.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -44,4 +46,12 @@ public class HelpRequest {
     @Lob
     @Column(columnDefinition = "LONGBLOB", nullable = false)
     private String message;
+
+    @Column(name = "is_resolved", nullable = true)
+    private boolean isResolved;
+
+    @Enumerated(EnumType.STRING)
+    @Builder.Default
+    @Column(name = "status", nullable = false)
+    private RequestStatus status = RequestStatus.PENDING;
 }
