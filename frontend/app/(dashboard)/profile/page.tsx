@@ -24,6 +24,17 @@ import {
     DialogTitle,
     DialogClose,
 } from "@/components/ui/dialog";
+import {
+    AlertDialog,
+    AlertDialogTrigger,
+    AlertDialogContent,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogAction,
+    AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { TextShimmer } from "@/components/core/text-shimmer";
@@ -66,7 +77,7 @@ function ProfileCard() {
         profilePicture: null as string | null,
     });
 
-    // Dialog open state
+    // Dialog open state for edit profile
     const [open, setOpen] = useState(false);
 
     // Fetch profile data from API
@@ -85,7 +96,8 @@ function ProfileCard() {
                 setUserProfile({
                     name: data.name || "Default User",
                     email: data.email || "user@gmail.com",
-                    role: data.roles && data.roles.length > 0 ? data.roles[0] : "USER",
+                    role:
+                        data.roles && data.roles.length > 0 ? data.roles[0] : "USER",
                     phone: data.phone || "",
                     area: data.area || "",
                     bio: data.bio || "",
@@ -98,7 +110,7 @@ function ProfileCard() {
             });
     }, [router]);
 
-    // Handle profile save
+    // Handle profile save (edit profile)
     const handleProfileSave = async (data: {
         name?: string;
         phone?: string;
@@ -131,7 +143,7 @@ function ProfileCard() {
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`,
+                        Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
                         "Content-Type": "multipart/form-data",
                     },
                 }
@@ -159,6 +171,36 @@ function ProfileCard() {
             console.error("Error updating profile:", error);
             toast.error("Failed to update profile");
         }
+    };
+
+    // Handle account deletion
+    const handleDeleteAccount = async () => {
+        try {
+            const token = localStorage.getItem("jwtToken");
+            if (!token) {
+                router.push("/");
+                return;
+            }
+            await axios.delete("http://localhost:8081/api/user/delete", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            toast("Account deleted", {
+                description: "Your account has been deleted successfully.",
+            });
+            router.push("/");
+        } catch (error) {
+            console.error("Error deleting account:", error);
+            toast.error("Failed to delete account");
+        }
+    };
+
+    // Handle logout
+    const handleLogout = () => {
+        localStorage.removeItem("jwtToken");
+        toast("Logged out", {
+            description: "You have been logged out successfully.",
+        });
+        router.push("/");
     };
 
     // Updated image resolution logic:
@@ -237,7 +279,7 @@ function ProfileCard() {
                                 <EditProfileFormWrapper
                                     userProfile={{
                                         ...userProfile,
-                                        // Rename property for form component consistency
+                                        // For form component consistency, rename property
                                         avatarUrl: userProfile.profilePicture,
                                     }}
                                     onSaveProfile={handleProfileSave}
@@ -274,30 +316,36 @@ function ProfileCard() {
                                 <p className="text-muted-foreground text-sm">
                                     {`Role: ${userProfile.role}`}
                                 </p>
-                                {(userProfile.phone || userProfile.area || userProfile.bio) && (
-                                    <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
-                                        {userProfile.phone && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Phone:</div>
-                                                <div className="text-gray-700">
-                                                    {maskPhoneNumber(userProfile.phone)}
-                                                </div>
-                                            </>
-                                        )}
-                                        {userProfile.area && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Area:</div>
-                                                <div className="text-gray-700">{userProfile.area}</div>
-                                            </>
-                                        )}
-                                        {userProfile.bio && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Bio:</div>
-                                                <div className="text-gray-700">{userProfile.bio}</div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                {(userProfile.phone ||
+                                    userProfile.area ||
+                                    userProfile.bio) && (
+                                        <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
+                                            {userProfile.phone && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Phone:</div>
+                                                    <div className="text-gray-700">
+                                                        {maskPhoneNumber(userProfile.phone)}
+                                                    </div>
+                                                </>
+                                            )}
+                                            {userProfile.area && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Area:</div>
+                                                    <div className="text-gray-700">
+                                                        {userProfile.area}
+                                                    </div>
+                                                </>
+                                            )}
+                                            {userProfile.bio && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Bio:</div>
+                                                    <div className="text-gray-700">
+                                                        {userProfile.bio}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
                             </div>
                         </div>
 
@@ -316,10 +364,38 @@ function ProfileCard() {
                                     onCheckedChange={handleDarkModeToggle}
                                 />
                             </div>
-                            <Button variant="destructive" className="w-full">
-                                Delete Account
-                            </Button>
-                            <Button variant="outline" className="w-full">
+
+                            {/* Alert Dialog for Delete Account */}
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="destructive" className="w-full">
+                                        Delete Account
+                                    </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>
+                                            Are you absolutely sure?
+                                        </AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            This action cannot be undone. This will permanently delete your account.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleDeleteAccount}>
+                                            Continue
+                                        </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
+
+                            {/* Logout Button */}
+                            <Button
+                                variant="outline"
+                                className="w-full"
+                                onClick={handleLogout}
+                            >
                                 Logout
                             </Button>
                         </div>
