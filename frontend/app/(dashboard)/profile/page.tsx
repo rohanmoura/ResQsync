@@ -1,75 +1,95 @@
 "use client";
-
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axios from "axios";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTheme } from "next-themes";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
     Tooltip,
     TooltipContent,
     TooltipTrigger,
     TooltipProvider,
 } from "@/components/ui/tooltip";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Pencil, ArrowLeft } from "lucide-react";
+// Shadcn Dialog components
+import {
+    Dialog,
+    DialogTrigger,
+    DialogContent,
+    DialogTitle,
+    DialogClose,
+} from "@/components/ui/dialog";
+// Import toast from sonner
+import { toast } from "sonner";
+import { GlowEffect } from "@/components/core/glow-effect";
+import { TextShimmer } from "@/components/core/text-shimmer";
+import axios from "axios";
 import { withAuth } from "@/app/_components/withAuth";
-import { Pencil, Upload } from "lucide-react";
+import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
 
-function ProfilePage() {
-    const [userData, setUserData] = useState({
-        name: "Default User",
-        email: "user@example.com",
-        bio: "",
-        profilePicture: "",
-        phone: "",
-        area: "",
-        role: "User",
-    });
+// Helper: Mask phone number (e.g., "1234567890" → "12******90")
+function maskPhoneNumber(phone: string): string {
+    if (!phone) return "";
+    if (phone.length < 4) return phone;
+    const firstTwo = phone.slice(0, 2);
+    const lastTwo = phone.slice(-2);
+    const middle = phone.length - 4;
+    return `${firstTwo}${"*".repeat(middle)}${lastTwo}`;
+}
 
-    const [editData, setEditData] = useState({
-        name: "",
-        bio: "",
-        profilePicture: "",
-        phone: "",
-        area: "",
-    });
-
-    const [isEditing, setIsEditing] = useState(false);
+function ProfileCard() {
     const router = useRouter();
+    const { theme, setTheme } = useTheme();
+    const [isDark, setIsDark] = useState(false);
+    useEffect(() => {
+        setIsDark(theme === "dark");
+    }, [theme]);
+    const handleDarkModeToggle = (checked: boolean) => {
+        setIsDark(checked);
+        setTheme(checked ? "dark" : "light");
+    };
 
+    // userProfile state fetched from API.
+    const [userProfile, setUserProfile] = useState({
+        name: "Default User",
+        email: "",
+        role: "",
+        phone: "",
+        area: "",
+        bio: "",
+        avatarUrl: null as string | null,
+    });
+
+    // Dialog open state.
+    const [open, setOpen] = useState(false);
+
+    // Fetch profile data on mount.
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
             router.push("/");
             return;
         }
-
         axios
             .get("http://localhost:8081/api/user/profile", {
                 headers: { Authorization: `Bearer ${token}` },
             })
             .then((response) => {
                 const data = response.data;
-                setUserData({
+                setUserProfile({
                     name: data.name || "Default User",
-                    email: data.email || "user@example.com",
-                    bio: data.bio || "",
-                    profilePicture: data.profilePicture || "",
-                    phone: data.phone ? maskPhone(data.phone) : "",
+                    email: data.email || "",
+                    role:
+                        data.roles && data.roles.length > 0 ? data.roles[0] : "User",
+                    phone: data.phone ? maskPhoneNumber(data.phone) : "",
                     area: data.area || "",
-                    role: "User",
-                });
-                setEditData({
-                    name: data.name || "",
                     bio: data.bio || "",
-                    profilePicture: data.profilePicture || "",
-                    phone: data.phone || "",
-                    area: data.area || "",
+                    avatarUrl: data.profilePicture || null,
                 });
             })
             .catch((error) => {
@@ -78,140 +98,157 @@ function ProfilePage() {
             });
     }, [router]);
 
-    // Mask phone number: e.g., "72++++++29"
-    const maskPhone = (phone: string) => {
-        return phone.replace(/(\d{2})\d+(\d{2})/, "$1++++++$2");
-    };
-
-    // Update userData with editData on Save
-    const handleSave = () => {
-        setUserData({
-            ...userData,
-            ...editData,
-            phone: maskPhone(editData.phone),
+    // Handle profile save – update the userProfile state.
+    // Note: the edit form sends a "removeAvatar" flag when the avatar is removed.
+    const handleProfileSave = (data: {
+        name?: string;
+        phone?: string;
+        area?: string;
+        bio?: string;
+        profilePicture?: File | null;
+        removeAvatar?: boolean;
+    }) => {
+        setUserProfile((prev) => {
+            let newAvatarUrl = prev.avatarUrl;
+            if (data.removeAvatar) {
+                newAvatarUrl = null;
+            } else if (data.profilePicture) {
+                newAvatarUrl = URL.createObjectURL(data.profilePicture);
+            }
+            const updatedName =
+                data.name && data.name.trim() !== "" ? data.name : "Default User";
+            return {
+                ...prev,
+                name: updatedName,
+                phone: data.phone ? maskPhoneNumber(data.phone) : "",
+                area: data.area?.trim() || "",
+                bio: data.bio?.trim() || "",
+                avatarUrl: newAvatarUrl,
+            };
         });
-        setIsEditing(false);
+        toast("Profile updated", {
+            description: "Your profile has been updated successfully.",
+        });
+        setOpen(false);
     };
 
     return (
         <TooltipProvider>
-            <div className="max-w-4xl mx-auto p-6 space-y-6">
-                {/* Profile Header Card */}
-                <Card>
-                    <CardHeader className="flex items-center gap-4">
-                        <Avatar className="w-16 h-16">
-                            {userData.profilePicture ? (
-                                <AvatarImage src={userData.profilePicture} alt={userData.name} />
-                            ) : (
-                                <AvatarFallback>
-                                    {userData.name.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                            )}
-                        </Avatar>
-                        <div className="flex-1">
-                            <CardTitle className="text-xl font-semibold">
-                                {userData.name}
-                            </CardTitle>
-                            <p className="text-muted-foreground text-sm">
-                                {userData.email}
-                            </p>
-                            <p className="text-muted-foreground text-sm">
-                                Role: {userData.role}
-                            </p>
-                            {userData.phone && (
-                                <p className="text-muted-foreground text-sm">
-                                    Phone: {userData.phone}
-                                </p>
-                            )}
-                            {userData.area && (
-                                <p className="text-muted-foreground text-sm">
-                                    Area: {userData.area}
-                                </p>
-                            )}
-                            {userData.bio && (
-                                <p className="text-muted-foreground text-sm">
-                                    {userData.bio}
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Edit Button with Tooltip & Popover */}
+            <div className="min-h-screen flex flex-col bg-background py-8">
+                {/* Back Button */}
+                <div className="px-6 relative">
+                    <Link href="/" className="flex items-center space-x-2">
                         <Tooltip>
                             <TooltipTrigger asChild>
-                                <Popover open={isEditing} onOpenChange={setIsEditing}>
-                                    <PopoverTrigger asChild>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="hover:bg-gray-200 dark:hover:bg-gray-800"
-                                        >
-                                            <Pencil className="w-5 h-5" />
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80 p-4">
-                                        <div className="space-y-4">
-                                            <div>
-                                                <Label htmlFor="edit-name">Name</Label>
-                                                <Input
-                                                    id="edit-name"
-                                                    value={editData.name}
-                                                    onChange={(e) =>
-                                                        setEditData({ ...editData, name: e.target.value })
-                                                    }
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="edit-bio">Bio</Label>
-                                                <Textarea
-                                                    id="edit-bio"
-                                                    value={editData.bio}
-                                                    onChange={(e) =>
-                                                        setEditData({ ...editData, bio: e.target.value })
-                                                    }
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="edit-phone">Phone</Label>
-                                                <Input
-                                                    id="edit-phone"
-                                                    value={editData.phone}
-                                                    onChange={(e) =>
-                                                        setEditData({ ...editData, phone: e.target.value })
-                                                    }
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label htmlFor="edit-area">Area</Label>
-                                                <Input
-                                                    id="edit-area"
-                                                    value={editData.area}
-                                                    onChange={(e) =>
-                                                        setEditData({ ...editData, area: e.target.value })
-                                                    }
-                                                />
-                                            </div>
-                                            <div>
-                                                <Label>Profile Picture</Label>
-                                                <div className="flex gap-2 items-center">
-                                                    <Button variant="outline">
-                                                        <Upload className="w-4 h-4" /> Upload
-                                                    </Button>
-                                                    {/* Hidden file input; integrate file upload logic as needed */}
-                                                    <Input type="file" className="hidden" />
-                                                </div>
-                                            </div>
-                                            <Button onClick={handleSave}>Save Changes</Button>
-                                        </div>
-                                    </PopoverContent>
-                                </Popover>
+                                <div className="relative inline-block">
+                                    <GlowEffect
+                                        colors={["#FF5733", "#33FF57", "#3357FF", "#F1C40F"]}
+                                        mode="colorShift"
+                                        blur="soft"
+                                        duration={3}
+                                        scale={1}
+                                    />
+                                    <Button
+                                        variant="outline"
+                                        size="default"
+                                        className="relative flex items-center space-x-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                    >
+                                        <ArrowLeft className="w-5 h-5" />
+                                        <span className="text-sm font-medium text-muted-foreground">
+                                            Back
+                                        </span>
+                                    </Button>
+                                </div>
                             </TooltipTrigger>
-                            <TooltipContent>Edit Profile</TooltipContent>
+                            <TooltipContent>Go Back</TooltipContent>
                         </Tooltip>
-                    </CardHeader>
-                </Card>
+                    </Link>
+                </div>
+                {/* Profile Card */}
+                <div className="flex-grow flex items-center justify-center">
+                    <Card className="relative w-full max-w-md p-8 bg-card text-foreground rounded-lg shadow-lg">
+                        {/* Edit Dialog */}
+                        <Dialog open={open} onOpenChange={setOpen}>
+                            <DialogTrigger asChild>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="absolute top-4 right-4 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                >
+                                    <Pencil className="w-5 h-5" />
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent
+                                className={[
+                                    "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
+                                    "w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl",
+                                    "max-h-[calc(100vh-4rem)] overflow-auto",
+                                ].join(" ")}
+                            >
+                                <DialogTitle className="sr-only">Edit Profile</DialogTitle>
+                                <EditProfileFormWrapper
+                                    userProfile={userProfile}
+                                    onSaveProfile={handleProfileSave}
+                                />
+                                <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
+                            </DialogContent>
+                        </Dialog>
+                        {/* Profile Content */}
+                        <div className="flex flex-col items-center space-y-6">
+                            {/* Avatar */}
+                            <Avatar className="w-24 h-24">
+                                {userProfile.avatarUrl ? (
+                                    <img
+                                        src={userProfile.avatarUrl}
+                                        alt="User Avatar"
+                                        className="w-full h-full object-cover rounded-full"
+                                    />
+                                ) : (
+                                    <AvatarFallback className="bg-muted text-primary text-3xl font-bold">
+                                        {userProfile.name.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                )}
+                            </Avatar>
+                            {/* Main Info */}
+                            <div className="flex flex-col items-center gap-2">
+                                <TextShimmer className="text-2xl font-bold" duration={1.5}>
+                                    {userProfile.name}
+                                </TextShimmer>
+                                <p className="text-muted-foreground text-sm">
+                                    {userProfile.email}
+                                </p>
+                                <p className="text-muted-foreground text-sm">
+                                    {`Role: ${userProfile.role}`}
+                                </p>
+                            </div>
+                        </div>
+                        <Separator className="my-6 border-t border-muted-foreground" />
+                        {/* System Actions */}
+                        <div className="flex flex-col space-y-4">
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="dark-mode-switch" className="text-sm">
+                                    Dark Mode
+                                </Label>
+                                <Switch
+                                    id="dark-mode-switch"
+                                    className="ml-2"
+                                    checked={isDark}
+                                    onCheckedChange={handleDarkModeToggle}
+                                />
+                            </div>
+                            <Button variant="destructive" className="w-full">
+                                Delete Account
+                            </Button>
+                            <Button variant="outline" className="w-full">
+                                Logout
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
             </div>
         </TooltipProvider>
     );
 }
 
-export default withAuth(ProfilePage);
+
+export default withAuth(ProfileCard);
