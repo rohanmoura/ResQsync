@@ -126,25 +126,32 @@ function ProfileCard() {
                 return;
             }
 
+            // Create an object for non-file fields
+            const updateDto = {
+                name: data.name ?? "",
+                phone: data.phone ?? "",
+                area: data.area ?? "",
+                bio: data.bio ?? "",
+                // Optionally include removeAvatar if needed on the backend side
+                removeAvatar: data.removeAvatar ? true : false,
+            };
+
             // Build FormData payload
             const formData = new FormData();
-            formData.append("name", data.name ?? "");
-            formData.append("phone", data.phone ?? "");
-            formData.append("area", data.area ?? "");
-            formData.append("bio", data.bio ?? "");
+            // Append the JSON part under "updateDto"
+            formData.append("updateDto", JSON.stringify(updateDto));
+            // Append the image file if provided and not removed
             if (!data.removeAvatar && data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
-            } else {
-                formData.append("removeAvatar", "true");
             }
 
-            const response = await axios.post(
+            const response = await axios.put(
                 "http://localhost:8081/api/user/update-profile",
                 formData,
                 {
                     headers: {
-                        Authorization: `Bearer ${localStorage.getItem("jwtToken")}`,
-                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer ${token}`,
+                        // Note: Let Axios set the correct Content-Type with boundary.
                     },
                 }
             );
