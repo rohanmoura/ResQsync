@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
+import axios from "axios";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,8 +29,6 @@ import {
 import { toast } from "sonner";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { TextShimmer } from "@/components/core/text-shimmer";
-import axios from "axios";
-import { withAuth } from "@/app/_components/withAuth";
 import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
 
 // Helper: Mask phone number (e.g., "1234567890" → "12******90")
@@ -54,21 +53,20 @@ function ProfileCard() {
         setTheme(checked ? "dark" : "light");
     };
 
-    // userProfile state fetched from API.
+    // User profile state (fetched from API)
     const [userProfile, setUserProfile] = useState({
         name: "Default User",
-        email: "",
-        role: "",
+        email: "user@gmail.com",
+        role: "USER",
         phone: "",
         area: "",
         bio: "",
         avatarUrl: null as string | null,
     });
-
-    // Dialog open state.
+    // Dialog open state
     const [open, setOpen] = useState(false);
 
-    // Fetch profile data on mount.
+    // Fetch profile data from API
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
@@ -83,10 +81,9 @@ function ProfileCard() {
                 const data = response.data;
                 setUserProfile({
                     name: data.name || "Default User",
-                    email: data.email || "",
-                    role:
-                        data.roles && data.roles.length > 0 ? data.roles[0] : "User",
-                    phone: data.phone ? maskPhoneNumber(data.phone) : "",
+                    email: data.email || "user@gmail.com",
+                    role: data.roles && data.roles.length > 0 ? data.roles[0] : "USER",
+                    phone: data.phone || "",
                     area: data.area || "",
                     bio: data.bio || "",
                     avatarUrl: data.profilePicture || null,
@@ -98,8 +95,8 @@ function ProfileCard() {
             });
     }, [router]);
 
-    // Handle profile save – update the userProfile state.
-    // Note: the edit form sends a "removeAvatar" flag when the avatar is removed.
+    // Handle profile save (merge updated fields and show toast)
+    // The edit form now sends a removeAvatar flag.
     const handleProfileSave = (data: {
         name?: string;
         phone?: string;
@@ -120,7 +117,7 @@ function ProfileCard() {
             return {
                 ...prev,
                 name: updatedName,
-                phone: data.phone ? maskPhoneNumber(data.phone) : "",
+                phone: data.phone?.trim() || "",
                 area: data.area?.trim() || "",
                 bio: data.bio?.trim() || "",
                 avatarUrl: newAvatarUrl,
@@ -209,17 +206,40 @@ function ProfileCard() {
                                     </AvatarFallback>
                                 )}
                             </Avatar>
-                            {/* Main Info */}
+                            {/* Main Info: Name, Email, Role */}
                             <div className="flex flex-col items-center gap-2">
                                 <TextShimmer className="text-2xl font-bold" duration={1.5}>
                                     {userProfile.name}
                                 </TextShimmer>
-                                <p className="text-muted-foreground text-sm">
-                                    {userProfile.email}
-                                </p>
+                                <p className="text-muted-foreground text-sm">{userProfile.email}</p>
                                 <p className="text-muted-foreground text-sm">
                                     {`Role: ${userProfile.role}`}
                                 </p>
+                                {/* Additional Info: Phone, Area, Bio */}
+                                {(userProfile.phone || userProfile.area || userProfile.bio) && (
+                                    <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
+                                        {userProfile.phone && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Phone:</div>
+                                                <div className="text-gray-700">
+                                                    {maskPhoneNumber(userProfile.phone)}
+                                                </div>
+                                            </>
+                                        )}
+                                        {userProfile.area && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Area:</div>
+                                                <div className="text-gray-700">{userProfile.area}</div>
+                                            </>
+                                        )}
+                                        {userProfile.bio && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Bio:</div>
+                                                <div className="text-gray-700">{userProfile.bio}</div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
                         <Separator className="my-6 border-t border-muted-foreground" />
@@ -251,4 +271,5 @@ function ProfileCard() {
 }
 
 
-export default withAuth(ProfileCard);
+
+export default ProfileCard;
