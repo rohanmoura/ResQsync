@@ -50,7 +50,7 @@ type EditProfileFormProps = {
         phone?: string;
         area?: string;
         bio?: string;
-        // Here, avatarUrl may be a relative URL, absolute URL, or base64 encoded string.
+        // avatarUrl can be a relative URL, absolute URL, base64 string, or blob URL.
         avatarUrl: string | null;
     };
 };
@@ -103,11 +103,11 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
     const { ref: formFileRef } = form.register("profilePicture");
 
     // Updated previewUrl logic:
-    // - If avatarUrl starts with "http", use it directly.
+    // - If currentAvatarUrl starts with "http" or "blob:" use it directly.
     // - Else if its length > 100, assume base64 and prepend data URI prefix.
     // - Otherwise, treat as relative URL.
     const previewUrl = currentAvatarUrl
-        ? currentAvatarUrl.startsWith("http")
+        ? (currentAvatarUrl.startsWith("http") || currentAvatarUrl.startsWith("blob:"))
             ? currentAvatarUrl
             : currentAvatarUrl.length > 100
                 ? `data:image/png;base64,${currentAvatarUrl}`
@@ -117,6 +117,7 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (file) {
+            // Create a blob URL for preview.
             setCurrentAvatarUrl(URL.createObjectURL(file));
             setAvatarRemoved(false);
             form.setValue("profilePicture", file);
