@@ -1,25 +1,40 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import { Button } from "@/components/ui/button";
-import { Spotlight } from "@/components/core/spotlight";
 import { TextEffect } from "../core/text-effect";
 import { TextLoop } from "../core/text-loop";
-import GetHelpToast from "./GetHelpToast";
-import { Dialog, DialogContent, DialogTrigger, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { GetHelpForm } from "../forms/GetHelpForm";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isProfileComplete, setIsProfileComplete] = useState(false);
   const router = useRouter();
+
+  // Dialog open states
+  const [getHelpDialogOpen, setGetHelpDialogOpen] = useState(false);
+  const [volunteerDialogOpen, setVolunteerDialogOpen] = useState(false);
+
+  // Form states for Get Help
+  const [helpType, setHelpType] = useState("");
+  const [helpDescription, setHelpDescription] = useState("");
+
+  // Form state for Volunteer
+  const [volunteerReason, setVolunteerReason] = useState("");
 
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
     setIsAuthenticated(!!token);
+    if (token) {
+      // Simulated profile completion check (set localStorage "profileComplete" to "true" if filled)
+      const profileComplete = localStorage.getItem("profileComplete");
+      setIsProfileComplete(profileComplete === "true");
+    }
   }, []);
 
-  const handleGetHelpClick = () => {
+  const handleGetHelpButtonClick = () => {
     if (!isAuthenticated) {
       toast("Authentication Required", {
         description: "To get help, please sign up first.",
@@ -28,10 +43,16 @@ export default function HeroSection() {
           onClick: () => router.push("/signup"),
         },
       });
+      return;
     }
+    if (!isProfileComplete) {
+      toast.error("Please complete your profile details before requesting help.");
+      return;
+    }
+    setGetHelpDialogOpen(true);
   };
 
-  const handleVolunteerClick = () => {
+  const handleVolunteerButtonClick = () => {
     if (!isAuthenticated) {
       toast("Authentication Required", {
         description: "To volunteer, please sign up first.",
@@ -40,6 +61,54 @@ export default function HeroSection() {
           onClick: () => router.push("/signup"),
         },
       });
+      return;
+    }
+    if (!isProfileComplete) {
+      toast.error("Please complete your profile details before volunteering.");
+      return;
+    }
+    setVolunteerDialogOpen(true);
+  };
+
+  const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!helpType.trim()) {
+      toast.error("Please fill the type of help.");
+      return;
+    }
+    if (!helpDescription.trim()) {
+      toast.error("Please fill the description of help.");
+      return;
+    }
+    try {
+      await axios.post("http://localhost:8081/api/help-requests/submit", {
+        helpType,
+        helpDescription,
+      });
+      toast.success("Help request submitted successfully!");
+      setGetHelpDialogOpen(false);
+      setHelpType("");
+      setHelpDescription("");
+    } catch (error) {
+      toast.error("Failed to submit help request. Please try again.");
+    }
+  };
+
+  const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!volunteerReason.trim()) {
+      toast.error("Please fill the reason for volunteering.");
+      return;
+    }
+    try {
+      await axios.post("http://localhost:8081/api/volunteers/add", {
+        volunteerReason,
+      });
+      toast.success("Volunteer application submitted successfully!");
+      setVolunteerDialogOpen(false);
+      setVolunteerReason("");
+    } catch (error) {
+      toast.error("Failed to submit volunteer application. Please try again.");
     }
   };
 
@@ -66,59 +135,62 @@ export default function HeroSection() {
           Seamlessly allocate resources, track crises in real time, and dispatch help at the push of a button.
         </TextEffect>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
-          {isAuthenticated ? (
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  size="sm"
-                  className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-6 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
-                >
-                  Get Help
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogTitle>Request Assistance</DialogTitle>
-                <GetHelpForm />
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Button
-              size="sm"
-              className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-6 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
-              onClick={handleGetHelpClick}
-            >
-              Get Help
-            </Button>
-          )}
-          {isAuthenticated ? (
-            <Dialog>
-              <DialogTrigger asChild>
-                {/* Volunteer Button */}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-fit bg-white text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg px-6 py-3 animate-bounce"
-                >
-                  Volunteer
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg">
-                <DialogTitle>Request Assistance</DialogTitle>
-                <GetHelpForm />
-              </DialogContent>
-            </Dialog>
-          ) : (
-            <Button
-              size="sm"
-              variant="outline"
-              className="w-fit bg-white text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg px-6 py-3 animate-bounce"
-              onClick={handleVolunteerClick}
-            >
-              Volunteer
-            </Button>
-          )}
+          <Button
+            size="sm"
+            className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-6 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
+            onClick={handleGetHelpButtonClick}
+          >
+            Get Help
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="w-fit bg-white text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg px-6 py-3 animate-bounce"
+            onClick={handleVolunteerButtonClick}
+          >
+            Volunteer
+          </Button>
         </div>
       </div>
+
+      {/* Get Help Dialog */}
+      <Dialog open={getHelpDialogOpen} onOpenChange={setGetHelpDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle>Request Assistance</DialogTitle>
+          <form onSubmit={handleGetHelpSubmit} className="flex flex-col gap-4 mt-4">
+            <input
+              type="text"
+              value={helpType}
+              onChange={(e) => setHelpType(e.target.value)}
+              placeholder="Type of Help"
+              className="border p-2 rounded"
+            />
+            <textarea
+              value={helpDescription}
+              onChange={(e) => setHelpDescription(e.target.value)}
+              placeholder="Description of Help"
+              className="border p-2 rounded"
+            ></textarea>
+            <Button type="submit">Submit</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Volunteer Dialog */}
+      <Dialog open={volunteerDialogOpen} onOpenChange={setVolunteerDialogOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogTitle>Volunteer Application</DialogTitle>
+          <form onSubmit={handleVolunteerSubmit} className="flex flex-col gap-4 mt-4">
+            <textarea
+              value={volunteerReason}
+              onChange={(e) => setVolunteerReason(e.target.value)}
+              placeholder="Reason for Volunteering"
+              className="border p-2 rounded"
+            ></textarea>
+            <Button type="submit">Submit</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }
