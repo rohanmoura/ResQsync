@@ -16,13 +16,13 @@ import {
 } from "@/components/ui/dialog"; // Using shadcn dialog
 import { Loader2 } from "lucide-react";
 
-// Define type for user profile
+// Define type for user profile (added roles)
 interface UserProfile {
   name: string;
   phone?: string;
   area?: string;
   bio?: string;
-  // add more fields if needed
+  roles?: string[];
 }
 
 export default function HeroSection() {
@@ -57,6 +57,9 @@ export default function HeroSection() {
   const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
 
+  // New state: tracks if user already is a volunteer
+  const [isVolunteer, setIsVolunteer] = useState(false);
+
   // Helper to check which required fields are missing (ignoring helpRequests)
   const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
@@ -80,6 +83,12 @@ export default function HeroSection() {
           setUserProfile(data);
           const missing = getMissingFields(data);
           setIsProfileComplete(missing.length === 0);
+          // If roles include "Volunterr", mark user as volunteer.
+          if (data.roles && data.roles.includes("Volunterr")) {
+            setIsVolunteer(true);
+          } else {
+            setIsVolunteer(false);
+          }
         })
         .catch((error) => {
           console.error("Error fetching profile:", error);
@@ -139,6 +148,26 @@ export default function HeroSection() {
       return;
     }
     setVolunteerDialogOpen(true);
+  };
+
+  // New: Delete Volunteer Handler
+  const handleDeleteVolunteer = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      toast("Authentication Required", {
+        description: "Please sign in first.",
+      });
+      return;
+    }
+    try {
+      await axios.delete("http://localhost:8081/api/volunteers/deletevolunteerrole", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success("Volunteer role removed successfully!");
+      setIsVolunteer(false);
+    } catch (error) {
+      toast.error("Failed to remove volunteer role. Please try again.");
+    }
   };
 
   const handleGetHelpSubmit = async (
@@ -201,12 +230,13 @@ export default function HeroSection() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Volunteer application submitted successfully!");
-      // Reset volunteer form states
+      // Reset volunteer form states and mark user as volunteer
       setVolunteerDialogOpen(false);
       setVolunteerTypes([]);
       setVolunteerSkills([]);
       setVolunteerSkillInput("");
       setVolunteerReason("");
+      setIsVolunteer(true);
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
     } finally {
@@ -279,10 +309,12 @@ export default function HeroSection() {
           <Button
             size="sm"
             variant="outline"
-            className="w-fit bg-white text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg px-6 py-3 animate-bounce"
-            onClick={handleVolunteerButtonClick}
+            // Use same styling; if user is volunteer, increase horizontal padding slightly
+            className={`w-fit ${isVolunteer ? "px-8" : "px-6"
+              } py-3 text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg animate-bounce`}
+            onClick={isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick}
           >
-            Volunteer
+            {isVolunteer ? "Delete Volunteer" : "Volunteer"}
           </Button>
         </div>
       </div>
