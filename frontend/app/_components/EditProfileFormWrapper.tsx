@@ -1,20 +1,13 @@
 "use client";
-import { EditProfileForm } from "@/components/forms/EditProfileForm";
 import React from "react";
+import { EditProfileForm } from "@/components/forms/EditProfileForm";
 
 type EditProfileFormWrapperProps = {
-  onSaveProfile: (data: {
-    name?: string;
-    phone?: string;
-    area?: string;
-    bio?: string;
-    profilePicture?: File | null;
-    removeAvatar?: boolean;
-  }) => void;
+  onSaveProfile: (data: any) => void;
   userProfile: {
     name: string;
     email: string;
-    role: string;
+    roles?: string[];
     phone?: string;
     area?: string;
     bio?: string;
@@ -26,5 +19,19 @@ export function EditProfileFormWrapper({
   onSaveProfile,
   userProfile,
 }: EditProfileFormWrapperProps) {
-  return <EditProfileForm userProfile={userProfile} onSaveProfile={onSaveProfile} />;
+  return (
+    <EditProfileForm
+      onSaveProfile={onSaveProfile}
+      userProfile={{
+        name: userProfile.name,
+        email: userProfile.email,
+        // For basic details, join roles (if any) into a string:
+        role: userProfile.roles ? userProfile.roles.join(", ") : "USER",
+        phone: userProfile.phone,
+        area: userProfile.area,
+        bio: userProfile.bio,
+        avatarUrl: userProfile.avatarUrl,
+      }}
+    />
+  );
 }

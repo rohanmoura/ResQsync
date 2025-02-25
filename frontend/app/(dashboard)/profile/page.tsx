@@ -40,6 +40,7 @@ import { GlowEffect } from "@/components/core/glow-effect";
 import { TextShimmer } from "@/components/core/text-shimmer";
 import { withAuth } from "@/app/_components/withAuth";
 import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
+import { EditVolunteerProfileForm } from "@/components/forms/EditVolunteerProfileForm";
 
 // Helper: Mask phone number
 function maskPhoneNumber(phone: string): string {
@@ -65,22 +66,23 @@ function ProfileCard() {
         setTheme(checked ? "dark" : "light");
     };
 
-    // User profile state
     const [userProfile, setUserProfile] = useState({
         name: "Default User",
         email: "user@gmail.com",
-        role: "USER",
+        roles: ["USER"],
         phone: "",
         area: "",
         bio: "",
-        // profilePicture from API, may be base64 or URL/relative path.
         profilePicture: null as string | null,
+        volunteeringTypes: [] as string[],
+        skills: [] as string[],
+        about: "",
     });
 
-    // Dialog open state for edit profile
-    const [open, setOpen] = useState(false);
+    // Two separate dialog states:
+    const [openUserEdit, setOpenUserEdit] = useState(false);
+    const [openVolunteerEdit, setOpenVolunteerEdit] = useState(false);
 
-    // Fetch profile data from API
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
@@ -96,15 +98,14 @@ function ProfileCard() {
                 setUserProfile({
                     name: data.name || "Default User",
                     email: data.email || "user@gmail.com",
-                    // Update: Join multiple roles if available
-                    role:
-                        data.roles && data.roles.length > 0
-                            ? data.roles.join(", ")
-                            : "USER",
+                    roles: data.roles && data.roles.length > 0 ? data.roles : ["USER"],
                     phone: data.phone || "",
                     area: data.area || "",
                     bio: data.bio || "",
                     profilePicture: data.profilePicture || null,
+                    volunteeringTypes: data.volunteeringTypes || [],
+                    skills: data.skills || [],
+                    about: data.about || "",
                 });
             })
             .catch((error) => {
@@ -113,38 +114,26 @@ function ProfileCard() {
             });
     }, [router]);
 
-    // Handle profile save (edit profile)
-    const handleProfileSave = async (data: {
-        name?: string;
-        phone?: string;
-        area?: string;
-        bio?: string;
-        profilePicture?: File | null;
-        removeAvatar?: boolean;
-    }) => {
+    // Save basic user details
+    const handleProfileSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
             if (!token) {
                 router.push("/");
                 return;
             }
-
-            // Create an object for non-file fields
+            // Prepare update for basic details
             const updateDto = {
                 name: data.name ?? "",
                 phone: data.phone ?? "",
                 area: data.area ?? "",
                 bio: data.bio ?? "",
-                removeAvatar: data.removeAvatar ? true : false,
             };
-
-            // Build FormData payload
             const formData = new FormData();
             formData.append("updateDto", JSON.stringify(updateDto));
             if (!data.removeAvatar && data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
             }
-
             const response = await axios.post(
                 "http://localhost:8081/api/user/update-profile",
                 formData,
@@ -155,33 +144,71 @@ function ProfileCard() {
                     },
                 }
             );
-
             const updatedData = response.data;
             setUserProfile({
                 name: updatedData.name || "Default User",
                 email: updatedData.email || "user@gmail.com",
-                role:
+                roles:
                     updatedData.roles && updatedData.roles.length > 0
-                        ? updatedData.roles.join(", ")
-                        : "USER",
+                        ? updatedData.roles
+                        : ["USER"],
                 phone: updatedData.phone || "",
                 area: updatedData.area || "",
                 bio: updatedData.bio || "",
                 profilePicture: updatedData.profilePicture || null,
+                // Preserve volunteer fields if any
+                volunteeringTypes: updatedData.volunteeringTypes || userProfile.volunteeringTypes,
+                skills: updatedData.skills || userProfile.skills,
+                about: updatedData.about || userProfile.about,
             });
-
             toast("Profile updated", {
                 description: "Your profile has been updated successfully.",
             });
-            setOpen(false);
+            setOpenUserEdit(false);
         } catch (error) {
             console.error("Error updating profile:", error);
             toast.error("Failed to update profile");
         }
     };
 
-    // Handle account deletion
-    // Handle account deletion
+    // Save volunteer-specific details
+    const handleVolunteerSave = async (data: any) => {
+        try {
+            const token = localStorage.getItem("jwtToken");
+            if (!token) {
+                router.push("/");
+                return;
+            }
+            const updateVolunteerDto = {
+                volunteeringTypes: data.volunteeringTypes || [],
+                skills: data.skills || [],
+                about: data.about || "",
+            };
+            // Here you can use a dedicated endpoint for volunteer details if needed.
+            const response = await axios.post(
+                "http://localhost:8081/api/volunteers/update",
+                updateVolunteerDto,
+                {
+                    headers: { Authorization: `Bearer ${token}` },
+                }
+            );
+            const updatedData = response.data;
+            setUserProfile((prev) => ({
+                ...prev,
+                volunteeringTypes: updatedData.volunteeringTypes || [],
+                skills: updatedData.skills || [],
+                about: updatedData.about || "",
+            }));
+            toast("Volunteer profile updated", {
+                description: "Your volunteer details have been updated successfully.",
+            });
+            setOpenVolunteerEdit(false);
+        } catch (error) {
+            console.error("Error updating volunteer profile:", error);
+            toast.error("Failed to update volunteer details");
+        }
+    };
+
     const handleDeleteAccount = async () => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -189,10 +216,8 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // Log out user: remove token first
             localStorage.removeItem("jwtToken");
             localStorage.removeItem("jwtExp");
-            // Now delete the account using the stored token
             await axios.delete("http://localhost:8081/api/user/delete", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -206,20 +231,15 @@ function ProfileCard() {
         }
     };
 
-
-    // Handle logout
     const handleLogout = () => {
-        console.log("Logout triggered");
         localStorage.removeItem("jwtToken");
         localStorage.removeItem("jwtExp");
-        console.log("Token after removal:", localStorage.getItem("jwtToken"));
         toast("Logged out", {
             description: "You have been logged out successfully.",
         });
         router.push("/");
     };
 
-    // Updated image resolution logic:
     const resolvedAvatarUrl = userProfile.profilePicture
         ? userProfile.profilePicture.startsWith("http")
             ? userProfile.profilePicture
@@ -228,11 +248,12 @@ function ProfileCard() {
                 : `http://localhost:8081/${userProfile.profilePicture}`
         : null;
 
-    // Determine fallback letter.
     const fallbackLetter =
         userProfile.name && userProfile.name.trim() !== ""
             ? userProfile.name.charAt(0).toUpperCase()
             : userProfile.email.charAt(0).toUpperCase();
+
+    const isVolunteer = userProfile.roles.includes("VOLUNTEER");
 
     return (
         <TooltipProvider>
@@ -250,15 +271,9 @@ function ProfileCard() {
                                         duration={3}
                                         scale={1}
                                     />
-                                    <Button
-                                        variant="outline"
-                                        size="default"
-                                        className="relative flex items-center space-x-2 hover:bg-gray-200 dark:hover:bg-gray-800"
-                                    >
+                                    <Button variant="outline" size="default" className="relative flex items-center space-x-2 hover:bg-gray-200 dark:hover:bg-gray-800">
                                         <ArrowLeft className="w-5 h-5" />
-                                        <span className="text-sm font-medium text-muted-foreground">
-                                            Back
-                                        </span>
+                                        <span className="text-sm font-medium text-muted-foreground">Back</span>
                                     </Button>
                                 </div>
                             </TooltipTrigger>
@@ -270,144 +285,141 @@ function ProfileCard() {
                 {/* Profile Card */}
                 <div className="flex-grow flex items-center justify-center">
                     <Card className="relative w-full max-w-md p-8 bg-card text-foreground rounded-lg shadow-lg">
-                        {/* Edit Dialog */}
-                        <Dialog open={open} onOpenChange={setOpen}>
-                            <DialogTrigger asChild>
+                        {/* Pencil icons for editing */}
+                        <div className="absolute top-4 right-12">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setOpenUserEdit(true)}
+                                className="hover:bg-gray-200 dark:hover:bg-gray-800"
+                            >
+                                <Pencil className="w-5 h-5" />
+                            </Button>
+                        </div>
+                        {isVolunteer && (
+                            <div className="absolute top-4 right-4">
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="absolute top-4 right-4 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                    onClick={() => setOpenVolunteerEdit(true)}
+                                    className="hover:bg-gray-200 dark:hover:bg-gray-800"
                                 >
                                     <Pencil className="w-5 h-5" />
                                 </Button>
+                            </div>
+                        )}
+
+                        {/* User Edit Dialog */}
+                        <Dialog open={openUserEdit} onOpenChange={setOpenUserEdit}>
+                            <DialogTrigger asChild>
+                                <div />
                             </DialogTrigger>
-                            <DialogContent
-                                className={[
-                                    "fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
-                                    "w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl",
-                                    "max-h-[calc(100vh-4rem)] overflow-auto",
-                                ].join(" ")}
-                            >
+                            <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl max-h-[calc(100vh-4rem)] overflow-auto">
                                 <DialogTitle className="sr-only">Edit Profile</DialogTitle>
                                 <EditProfileFormWrapper
+                                    onSaveProfile={handleProfileSave}
                                     userProfile={{
-                                        ...userProfile,
+                                        name: userProfile.name,
+                                        email: userProfile.email,
+                                        roles: userProfile.roles,
+                                        phone: userProfile.phone,
+                                        area: userProfile.area,
+                                        bio: userProfile.bio,
                                         avatarUrl: userProfile.profilePicture,
                                     }}
-                                    onSaveProfile={handleProfileSave}
                                 />
                                 <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
                             </DialogContent>
                         </Dialog>
 
+                        {/* Volunteer Edit Dialog */}
+                        {isVolunteer && (
+                            <Dialog open={openVolunteerEdit} onOpenChange={setOpenVolunteerEdit}>
+                                <DialogTrigger asChild>
+                                    <div />
+                                </DialogTrigger>
+                                <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl max-h-[calc(100vh-4rem)] overflow-auto">
+                                    <DialogTitle className="sr-only">Edit Volunteer Details</DialogTitle>
+                                    <EditVolunteerProfileForm onSaveProfile={handleVolunteerSave} userProfile={userProfile} />
+                                    <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
+                                </DialogContent>
+                            </Dialog>
+                        )}
+
                         {/* Profile Content */}
                         <div className="flex flex-col items-center space-y-6">
-                            {/* Avatar */}
                             <Avatar className="w-24 h-24">
                                 {resolvedAvatarUrl ? (
-                                    <img
-                                        src={resolvedAvatarUrl}
-                                        alt="User Avatar"
-                                        className="w-full h-full object-cover rounded-full"
-                                    />
+                                    <img src={resolvedAvatarUrl} alt="User Avatar" className="w-full h-full object-cover rounded-full" />
                                 ) : (
-                                    <AvatarFallback className="bg-muted text-primary text-3xl font-bold">
-                                        {fallbackLetter}
-                                    </AvatarFallback>
+                                    <div className="bg-muted text-primary text-3xl font-bold">{fallbackLetter}</div>
                                 )}
                             </Avatar>
-
-                            {/* Main Info */}
                             <div className="flex flex-col items-center gap-2">
                                 <TextShimmer className="text-2xl font-bold" duration={1.5}>
                                     {userProfile.name}
                                 </TextShimmer>
-                                <p className="text-muted-foreground text-sm">
-                                    {userProfile.email}
-                                </p>
-                                <p className="text-muted-foreground text-sm">
-                                    {`Role: ${userProfile.role}`}
-                                </p>
-                                {(userProfile.phone ||
-                                    userProfile.area ||
-                                    userProfile.bio) && (
-                                        <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
-                                            {userProfile.phone && (
-                                                <>
-                                                    <div className="font-medium text-gray-700">Phone:</div>
-                                                    <div className="text-gray-700">
-                                                        {maskPhoneNumber(userProfile.phone)}
-                                                    </div>
-                                                </>
-                                            )}
-                                            {userProfile.area && (
-                                                <>
-                                                    <div className="font-medium text-gray-700">Area:</div>
-                                                    <div className="text-gray-700">
-                                                        {userProfile.area}
-                                                    </div>
-                                                </>
-                                            )}
-                                            {userProfile.bio && (
-                                                <>
-                                                    <div className="font-medium text-gray-700">Bio:</div>
-                                                    <div className="text-gray-700">
-                                                        {userProfile.bio}
-                                                    </div>
-                                                </>
-                                            )}
-                                        </div>
-                                    )}
+                                <p className="text-muted-foreground text-sm">{userProfile.email}</p>
+                                <p className="text-muted-foreground text-sm">{`Role: ${userProfile.roles.join(", ")}`}</p>
+                                {(userProfile.phone || userProfile.area || userProfile.bio) && (
+                                    <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg">
+                                        {userProfile.phone && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Phone:</div>
+                                                <div className="text-gray-700">{maskPhoneNumber(userProfile.phone)}</div>
+                                            </>
+                                        )}
+                                        {userProfile.area && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Area:</div>
+                                                <div className="text-gray-700">{userProfile.area}</div>
+                                            </>
+                                        )}
+                                        {userProfile.bio && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Bio:</div>
+                                                <div className="text-gray-700">{userProfile.bio}</div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                                {/* Volunteer Details Section */}
+                                {isVolunteer && (
+                                    <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg mt-4">
+                                        {userProfile.volunteeringTypes && userProfile.volunteeringTypes.length > 0 && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Volunteer Types:</div>
+                                                <div className="text-gray-700">{userProfile.volunteeringTypes.join(", ")}</div>
+                                            </>
+                                        )}
+                                        {userProfile.skills && userProfile.skills.length > 0 && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Skills:</div>
+                                                <div className="text-gray-700">{userProfile.skills.join(", ")}</div>
+                                            </>
+                                        )}
+                                        {userProfile.about && (
+                                            <>
+                                                <div className="font-medium text-gray-700">Volunteer Reason:</div>
+                                                <div className="text-gray-700">{userProfile.about}</div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
                         <Separator className="my-6 border-t border-muted-foreground" />
 
-                        {/* System Actions */}
                         <div className="flex flex-col space-y-4">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="dark-mode-switch" className="text-sm">
-                                    Dark Mode
-                                </Label>
-                                <Switch
-                                    id="dark-mode-switch"
-                                    className="ml-2"
-                                    checked={isDark}
-                                    onCheckedChange={handleDarkModeToggle}
-                                />
+                                <Label htmlFor="dark-mode-switch" className="text-sm">Dark Mode</Label>
+                                <Switch id="dark-mode-switch" className="ml-2" checked={isDark} onCheckedChange={handleDarkModeToggle} />
                             </div>
-
-                            {/* Alert Dialog for Delete Account */}
-                            <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="destructive" className="w-full">
-                                        Delete Account
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                            Are you absolutely sure?
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                            This action cannot be undone. This will permanently delete your account.
-                                        </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleDeleteAccount}>
-                                            Continue
-                                        </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
-
-                            {/* Logout Button */}
-                            <Button
-                                variant="outline"
-                                className="w-full"
-                                onClick={handleLogout}
-                            >
+                            <Button variant="destructive" className="w-full" onClick={handleDeleteAccount}>
+                                Delete Account
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={handleLogout}>
                                 Logout
                             </Button>
                         </div>
@@ -419,3 +431,5 @@ function ProfileCard() {
 }
 
 export default withAuth(ProfileCard);
+
+
