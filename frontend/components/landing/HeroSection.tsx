@@ -55,6 +55,7 @@ export default function HeroSection() {
   const [volunteerTypes, setVolunteerTypes] = useState<string[]>([]);
   const [volunteerSkillInput, setVolunteerSkillInput] = useState("");
   const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
+  const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
 
   // Helper to check which required fields are missing (ignoring helpRequests)
   const getMissingFields = (profile: UserProfile) => {
@@ -187,6 +188,7 @@ export default function HeroSection() {
       toast.error("Please fill the reason for volunteering.");
       return;
     }
+    setIsVolunteerSubmitting(true);
     try {
       const token = localStorage.getItem("jwtToken");
       await axios.post(
@@ -194,7 +196,7 @@ export default function HeroSection() {
         {
           volunteeringTypes: volunteerTypes,
           skills: volunteerSkills,
-          about: volunteerReason
+          about: volunteerReason,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -207,6 +209,8 @@ export default function HeroSection() {
       setVolunteerReason("");
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
+    } finally {
+      setIsVolunteerSubmitting(false);
     }
   };
 
@@ -246,12 +250,7 @@ export default function HeroSection() {
     >
       <div className="w-full px-4 sm:px-6 lg:px-8 text-center space-y-6 z-10">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight dark:text-white text-black flex flex-col sm:flex-row justify-center items-center">
-          <TextEffect
-            as="span"
-            per="word"
-            preset="blur"
-            className="inline-block"
-          >
+          <TextEffect as="span" per="word" preset="blur" className="inline-block">
             ResQSync
           </TextEffect>
           <TextLoop className="ml-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight dark:text-white text-black hidden md:inline-block overflow-hidden">
@@ -267,8 +266,7 @@ export default function HeroSection() {
           preset="fade-in-blur"
           className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto dark:text-gray-300 text-gray-700"
         >
-          Seamlessly allocate resources, track crises in real time, and dispatch
-          help at the push of a button.
+          Seamlessly allocate resources, track crises in real time, and dispatch help at the push of a button.
         </TextEffect>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
           <Button
@@ -391,7 +389,9 @@ export default function HeroSection() {
                 className="border p-2 rounded w-full"
               ></textarea>
             </div>
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={isVolunteerSubmitting}>
+              {isVolunteerSubmitting ? "Submitting" : "Submit"}
+            </Button>
           </form>
           <DialogClose />
         </DialogContent>

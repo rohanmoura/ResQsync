@@ -96,8 +96,11 @@ function ProfileCard() {
                 setUserProfile({
                     name: data.name || "Default User",
                     email: data.email || "user@gmail.com",
+                    // Update: Join multiple roles if available
                     role:
-                        data.roles && data.roles.length > 0 ? data.roles[0] : "USER",
+                        data.roles && data.roles.length > 0
+                            ? data.roles.join(", ")
+                            : "USER",
                     phone: data.phone || "",
                     area: data.area || "",
                     bio: data.bio || "",
@@ -132,15 +135,12 @@ function ProfileCard() {
                 phone: data.phone ?? "",
                 area: data.area ?? "",
                 bio: data.bio ?? "",
-                // Optionally include removeAvatar if needed on the backend side
                 removeAvatar: data.removeAvatar ? true : false,
             };
 
             // Build FormData payload
             const formData = new FormData();
-            // Append the JSON part under "updateDto"
             formData.append("updateDto", JSON.stringify(updateDto));
-            // Append the image file if provided and not removed
             if (!data.removeAvatar && data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
             }
@@ -151,8 +151,7 @@ function ProfileCard() {
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
-                        "Content-Type": "multipart/form-data", // Let Axios handle boundary
-                        // Note: Let Axios set the correct Content-Type with boundary.
+                        "Content-Type": "multipart/form-data",
                     },
                 }
             );
@@ -163,7 +162,7 @@ function ProfileCard() {
                 email: updatedData.email || "user@gmail.com",
                 role:
                     updatedData.roles && updatedData.roles.length > 0
-                        ? updatedData.roles[0]
+                        ? updatedData.roles.join(", ")
                         : "USER",
                 phone: updatedData.phone || "",
                 area: updatedData.area || "",
@@ -206,18 +205,14 @@ function ProfileCard() {
     const handleLogout = () => {
         console.log("Logout triggered");
         localStorage.removeItem("jwtToken");
-        console.log("Token after removal:", localStorage.getItem("jwtToken")); // Should log null
+        console.log("Token after removal:", localStorage.getItem("jwtToken"));
         toast("Logged out", {
             description: "You have been logged out successfully.",
         });
-        router.push("/"); // Redirect to a dedicated login page
+        router.push("/");
     };
 
-
     // Updated image resolution logic:
-    // - If profilePicture starts with "http", it's an absolute URL.
-    // - Else, if its length > 100, assume it's base64 encoded and prepend proper prefix.
-    // - Otherwise, treat it as a relative URL.
     const resolvedAvatarUrl = userProfile.profilePicture
         ? userProfile.profilePicture.startsWith("http")
             ? userProfile.profilePicture
@@ -290,7 +285,6 @@ function ProfileCard() {
                                 <EditProfileFormWrapper
                                     userProfile={{
                                         ...userProfile,
-                                        // For form component consistency, rename property
                                         avatarUrl: userProfile.profilePicture,
                                     }}
                                     onSaveProfile={handleProfileSave}
