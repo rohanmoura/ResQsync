@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ToogleMode";
 import { AnimatedBackground } from '@/components/core/animated-background';
 import { GlowEffect } from "@/components/core/glow-effect";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function Navbar() {
     const TABS = [
@@ -14,19 +15,35 @@ export default function Navbar() {
         { label: "Solutions", href: "#solutions" },
         { label: "Process", href: "#process" },
         { label: "Hospital Data", href: "/hospital-data" },
-        { label: "News Data", href: "/news-data" }, // ✅ Added News Data tab
+        { label: "News Data", href: "/news-data" },
     ];
 
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<{ name: string; avatar?: string } | null>(null);
+    const [user, setUser] = useState<{ name: string; profilePicture?: string } | null>(null);
     const router = useRouter();
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
 
+    // Close mobile menu when clicking outside
     useEffect(() => {
-        const checkAuthStatus = () => {
+        function handleClickOutside(event: MouseEvent) {
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        }
+        if (isMenuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isMenuOpen]);
+
+    // Check authentication status and fetch user profile if authenticated
+    useEffect(() => {
+        const checkAuthStatus = async () => {
             const token = localStorage.getItem("jwtToken");
             const exp = localStorage.getItem("jwtExp");
-            const storedUser = localStorage.getItem("user");
 
             if (token && exp) {
                 const now = Math.floor(Date.now() / 1000);
@@ -34,14 +51,24 @@ export default function Navbar() {
                     console.log("Token expired! Logging out...");
                     localStorage.removeItem("jwtToken");
                     localStorage.removeItem("jwtExp");
-                    localStorage.removeItem("user");
                     setIsAuthenticated(false);
                     setUser(null);
                     router.push("/");
                 } else {
                     setIsAuthenticated(true);
-                    if (storedUser) {
-                        setUser(JSON.parse(storedUser));
+                    try {
+                        const response = await axios.get("http://localhost:8081/api/user/profile", {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.data) {
+                            setUser({
+                                name: response.data.name || "User",
+                                profilePicture: response.data.profilePicture || "",
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error fetching profile:", error);
+                        setUser({ name: "User", profilePicture: "" });
                     }
                 }
             } else {
@@ -50,16 +77,13 @@ export default function Navbar() {
             }
         };
 
-        const interval = setInterval(checkAuthStatus, 10000);
         checkAuthStatus();
-
-        return () => clearInterval(interval);
     }, [router]);
 
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                <Link href="/" className="text-xl font-bold text-primary">
+                <Link href="/" prefetch={false} className="text-xl font-bold text-primary">
                     ResQSync
                 </Link>
 
@@ -75,6 +99,7 @@ export default function Navbar() {
                             <Link
                                 key={index}
                                 href={tab.href}
+                                prefetch={tab.href.startsWith("#") ? false : undefined}
                                 data-id={tab.label}
                                 className="px-4 py-1.5 text-base font-medium text-foreground transition-colors duration-300 hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
                             >
@@ -96,22 +121,29 @@ export default function Navbar() {
                             scale={1.1}
                         />
                         {isAuthenticated ? (
-                            <Link href="/profile" passHref>
+                            <Link href="/profile" passHref prefetch={false}>
                                 <Avatar className="cursor-pointer border border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all">
-                                    <AvatarImage src={user?.avatar || ""} alt="User Avatar" />
-                                    <AvatarFallback>
-                                        {user?.name ? user.name.charAt(0).toUpperCase() : "U"}
-                                    </AvatarFallback>
+                                    {user?.profilePicture ? (
+                                        <AvatarImage
+                                            src={`data:image/png;base64,${user.profilePicture}`}
+                                            alt="User Avatar"
+                                            onError={(e) => (e.currentTarget.src = "")}
+                                        />
+                                    ) : (
+                                        <AvatarFallback>
+                                            {user?.name.charAt(0).toUpperCase() || "U"}
+                                        </AvatarFallback>
+                                    )}
                                 </Avatar>
                             </Link>
                         ) : (
-                            <Link href="/signin" passHref>
+                            <Link href="/signin" passHref prefetch={false}>
                                 <Button
                                     variant="ghost"
                                     className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold 
-                                    bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 
-                                    dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent 
-                                    dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
+                  bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 
+                  dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent 
+                  dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
                                 >
                                     Log In
                                 </Button>
@@ -122,10 +154,7 @@ export default function Navbar() {
 
                 {/* Hamburger Menu for Mobile */}
                 <div className="md:hidden">
-                    <button
-                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="text-primary focus:outline-none"
-                    >
+                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-primary focus:outline-none">
                         ☰
                     </button>
                 </div>
@@ -133,11 +162,12 @@ export default function Navbar() {
 
             {/* Mobile Dropdown Menu */}
             {isMenuOpen && (
-                <div className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40">
+                <div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40">
                     {TABS.map((tab, index) => (
                         <Link
                             key={index}
                             href={tab.href}
+                            prefetch={tab.href.startsWith("#") ? false : undefined}
                             className="block px-4 py-2 text-base font-medium text-foreground hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
                             onClick={() => setIsMenuOpen(false)}
                         >

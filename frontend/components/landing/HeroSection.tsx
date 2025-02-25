@@ -6,7 +6,16 @@ import { TextEffect } from "../core/text-effect";
 import { TextLoop } from "../core/text-loop";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+// Importing motion primitives dialog components
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/core/dialog";
+import { Variants, Transition } from "motion/react";
 
 export default function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -24,6 +33,19 @@ export default function HeroSection() {
 
   // Form state for Volunteer
   const [volunteerReason, setVolunteerReason] = useState("");
+
+  // Motion Dialog custom variants and transition
+  const customVariants: Variants = {
+    initial: { opacity: 0, scale: 0.95, y: 40 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.95, y: 40 },
+  };
+
+  const customTransition: Transition = {
+    type: "spring",
+    bounce: 0,
+    duration: 0.25,
+  };
 
   // Helper to check which required fields are missing (ignoring helpRequests)
   const getMissingFields = (profile: any) => {
@@ -212,9 +234,21 @@ export default function HeroSection() {
       </div>
 
       {/* Get Help Dialog */}
-      <Dialog open={getHelpDialogOpen} onOpenChange={setGetHelpDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogTitle>Request Assistance</DialogTitle>
+      <Dialog
+        open={getHelpDialogOpen}
+        onOpenChange={setGetHelpDialogOpen}
+        variants={customVariants}
+        transition={customTransition}
+      >
+        <DialogContent className="max-w-lg bg-white dark:bg-zinc-900 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-900 dark:text-white">
+              Request Assistance
+            </DialogTitle>
+            <DialogDescription className="text-zinc-600 dark:text-zinc-400">
+              Please fill in the details below to request help.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleGetHelpSubmit} className="flex flex-col gap-4 mt-4">
             <input
               type="text"
@@ -231,13 +265,26 @@ export default function HeroSection() {
             ></textarea>
             <Button type="submit">Submit</Button>
           </form>
+          <DialogClose />
         </DialogContent>
       </Dialog>
 
       {/* Volunteer Dialog */}
-      <Dialog open={volunteerDialogOpen} onOpenChange={setVolunteerDialogOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogTitle>Volunteer Application</DialogTitle>
+      <Dialog
+        open={volunteerDialogOpen}
+        onOpenChange={setVolunteerDialogOpen}
+        variants={customVariants}
+        transition={customTransition}
+      >
+        <DialogContent className="max-w-lg bg-white dark:bg-zinc-900 p-6">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-900 dark:text-white">
+              Volunteer Application
+            </DialogTitle>
+            <DialogDescription className="text-zinc-600 dark:text-zinc-400">
+              Please provide your reason for volunteering.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleVolunteerSubmit} className="flex flex-col gap-4 mt-4">
             <textarea
               value={volunteerReason}
@@ -247,6 +294,7 @@ export default function HeroSection() {
             ></textarea>
             <Button type="submit">Submit</Button>
           </form>
+          <DialogClose />
         </DialogContent>
       </Dialog>
     </section>
