@@ -12,7 +12,7 @@ import {
     MorphingDialogContent,
     MorphingDialogClose,
     MorphingDialogContainer,
-} from '@/components/core/morphing-dialog';
+} from "@/components/core/morphing-dialog";
 import { HospitalData } from "./page";
 import { Tilt } from "@/components/core/tilt";
 import { TextRoll } from "@/components/core/text-roll";

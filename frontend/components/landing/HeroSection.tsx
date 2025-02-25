@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 
 export default function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
   const router = useRouter();
 
@@ -24,13 +25,34 @@ export default function HeroSection() {
   // Form state for Volunteer
   const [volunteerReason, setVolunteerReason] = useState("");
 
+  // Helper to check which required fields are missing (ignoring helpRequests)
+  const getMissingFields = (profile: any) => {
+    const missing: string[] = [];
+    if (!profile.name) missing.push("name");
+    if (!profile.phone) missing.push("phone");
+    if (!profile.area) missing.push("area");
+    if (!profile.bio) missing.push("bio");
+    return missing;
+  };
+
   useEffect(() => {
     const token = localStorage.getItem("jwtToken");
-    setIsAuthenticated(!!token);
     if (token) {
-      // Simulated profile completion check (set localStorage "profileComplete" to "true" if filled)
-      const profileComplete = localStorage.getItem("profileComplete");
-      setIsProfileComplete(profileComplete === "true");
+      setIsAuthenticated(true);
+      axios
+        .get("http://localhost:8081/api/user/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        .then((response) => {
+          const data = response.data;
+          setUserProfile(data);
+          const missing = getMissingFields(data);
+          setIsProfileComplete(missing.length === 0);
+        })
+        .catch((error) => {
+          console.error("Error fetching profile:", error);
+          // Optionally, handle error (e.g., force logout or show a message)
+        });
     }
   }, []);
 
@@ -45,8 +67,17 @@ export default function HeroSection() {
       });
       return;
     }
-    if (!isProfileComplete) {
-      toast.error("Please complete your profile details before requesting help.");
+    if (!userProfile) {
+      toast.error("Loading profile. Please wait...");
+      return;
+    }
+    const missing = getMissingFields(userProfile);
+    if (missing.length > 0) {
+      toast.error(
+        `Please fill your ${missing.join(
+          ", "
+        )} details before requesting help.`
+      );
       return;
     }
     setGetHelpDialogOpen(true);
@@ -63,14 +94,25 @@ export default function HeroSection() {
       });
       return;
     }
-    if (!isProfileComplete) {
-      toast.error("Please complete your profile details before volunteering.");
+    if (!userProfile) {
+      toast.error("Loading profile. Please wait...");
+      return;
+    }
+    const missing = getMissingFields(userProfile);
+    if (missing.length > 0) {
+      toast.error(
+        `Please fill your ${missing.join(
+          ", "
+        )} details before volunteering.`
+      );
       return;
     }
     setVolunteerDialogOpen(true);
   };
 
-  const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleGetHelpSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     if (!helpType.trim()) {
       toast.error("Please fill the type of help.");
@@ -81,10 +123,12 @@ export default function HeroSection() {
       return;
     }
     try {
-      await axios.post("http://localhost:8081/api/help-requests/submit", {
-        helpType,
-        helpDescription,
-      });
+      const token = localStorage.getItem("jwtToken");
+      await axios.post(
+        "http://localhost:8081/api/help-requests/submit",
+        { helpType, helpDescription },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       toast.success("Help request submitted successfully!");
       setGetHelpDialogOpen(false);
       setHelpType("");
@@ -94,16 +138,21 @@ export default function HeroSection() {
     }
   };
 
-  const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVolunteerSubmit = async (
+    e: React.FormEvent<HTMLFormElement>
+  ) => {
     e.preventDefault();
     if (!volunteerReason.trim()) {
       toast.error("Please fill the reason for volunteering.");
       return;
     }
     try {
-      await axios.post("http://localhost:8081/api/volunteers/add", {
-        volunteerReason,
-      });
+      const token = localStorage.getItem("jwtToken");
+      await axios.post(
+        "http://localhost:8081/api/volunteers/add",
+        { volunteerReason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       toast.success("Volunteer application submitted successfully!");
       setVolunteerDialogOpen(false);
       setVolunteerReason("");
@@ -113,10 +162,18 @@ export default function HeroSection() {
   };
 
   return (
-    <section id="about" className="w-full min-h-screen flex items-center justify-center relative">
+    <section
+      id="about"
+      className="w-full min-h-screen flex items-center justify-center relative"
+    >
       <div className="w-full px-4 sm:px-6 lg:px-8 text-center space-y-6 z-10">
         <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight dark:text-white text-black flex flex-col sm:flex-row justify-center items-center">
-          <TextEffect as="span" per="word" preset="blur" className="inline-block">
+          <TextEffect
+            as="span"
+            per="word"
+            preset="blur"
+            className="inline-block"
+          >
             ResQSync
           </TextEffect>
           <TextLoop className="ml-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight dark:text-white text-black hidden md:inline-block overflow-hidden">
@@ -132,7 +189,8 @@ export default function HeroSection() {
           preset="fade-in-blur"
           className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto dark:text-gray-300 text-gray-700"
         >
-          Seamlessly allocate resources, track crises in real time, and dispatch help at the push of a button.
+          Seamlessly allocate resources, track crises in real time, and dispatch
+          help at the push of a button.
         </TextEffect>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
           <Button
