@@ -46,6 +46,14 @@ const HelpRequestPage = () => {
             .finally(() => setLoading(false));
     }, []);
 
+    const toggleStatus = (id: number) => {
+        setHelpRequests((prev) =>
+            prev.map((req) =>
+                req.id === id ? { ...req, resolved: !req.resolved } : req
+            )
+        );
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
@@ -58,11 +66,16 @@ const HelpRequestPage = () => {
         <div className="container mx-auto p-4">
             <h1 className="text-4xl font-bold mb-6 text-center">Help Requests</h1>
             {helpRequests.length === 0 ? (
-                <p className="text-center text-muted-foreground">No help requests found.</p>
+                <p className="text-center text-muted-foreground">
+                    No help requests found.
+                </p>
             ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {helpRequests.map((request) => (
-                        <Card key={request.id} className="p-4 flex flex-col justify-between">
+                        <Card
+                            key={request.id}
+                            className="p-6 flex flex-col justify-between hover:shadow-xl transition-shadow"
+                        >
                             <div>
                                 <h2 className="text-xl font-semibold mb-2">{request.name}</h2>
                                 <p className="text-sm text-muted-foreground mb-1">
@@ -71,12 +84,17 @@ const HelpRequestPage = () => {
                                 <p className="text-sm text-muted-foreground mb-1">
                                     <span className="font-medium">Area:</span> {request.area}
                                 </p>
-                                <p className="text-sm text-muted-foreground">
-                                    <span className="font-medium">Status:</span> {request.status}
-                                </p>
                             </div>
                             <Separator className="my-2" />
-                            <Button variant="outline" size="sm">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => toggleStatus(request.id)}
+                                className={`w-full ${request.resolved
+                                        ? "text-green-500 border-green-500 hover:bg-green-500 hover:text-white"
+                                        : "text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
+                                    }`}
+                            >
                                 {request.resolved ? "Resolved" : "Pending"}
                             </Button>
                         </Card>

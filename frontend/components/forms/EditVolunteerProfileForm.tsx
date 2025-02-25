@@ -125,6 +125,7 @@ export function EditVolunteerProfileForm({
                                         }
                                     }}
                                 />
+
                                 <span className="text-sm">{type.replace(/_/g, " ")}</span>
                             </label>
                         ))}

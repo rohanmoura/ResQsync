@@ -19,11 +19,10 @@ export function EditVolunteerProfileFormWrapper({
     return (
         <EditVolunteerProfileForm
             onSaveProfile={onSaveProfile}
-            // Pass volunteer fields so they're prefilled in the form:
             userProfile={{
-                volunteeringTypes: userProfile.volunteeringTypes || [],
-                skills: userProfile.skills || [],
-                about: userProfile.about || "",
+                volunteeringTypes: userProfile.volunteeringTypes,
+                skills: userProfile.skills,
+                about: userProfile.about,
             }}
         />
     );

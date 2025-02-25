@@ -119,18 +119,6 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // If user is volunteer, disallow empty name, phone, area, or bio.
-            if (userProfile.roles.includes("VOLUNTEER")) {
-                if (
-                    !data.name?.trim() ||
-                    !data.phone?.trim() ||
-                    !data.area?.trim() ||
-                    !data.bio?.trim()
-                ) {
-                    toast.error("As a volunteer, you cannot leave any user field blank.");
-                    return; // Stop here; do NOT proceed with the update
-                }
-            }
             // Prepare update for basic details
             const updateDto = {
                 name: data.name ?? "",
@@ -188,18 +176,6 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // If user is volunteer, disallow empty volunteer fields (types, skills, about).
-            if (userProfile.roles.includes("VOLUNTEER")) {
-                if (
-                    !data.volunteeringTypes?.length ||
-                    !data.skills?.length ||
-                    !data.about?.trim()
-                ) {
-                    toast.error("As a volunteer, you cannot leave any volunteer field blank.");
-                    return; // Stop here; do NOT proceed with the update
-                }
-            }
-
             const updateVolunteerDto = {
                 volunteeringTypes: data.volunteeringTypes || [],
                 skills: data.skills || [],
