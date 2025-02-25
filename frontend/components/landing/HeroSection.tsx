@@ -306,7 +306,7 @@ export default function HeroSection() {
         variants={customVariants}
         transition={customTransition}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-zinc-900 p-6">
+        <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
               Request Assistance
@@ -342,7 +342,7 @@ export default function HeroSection() {
         variants={customVariants}
         transition={customTransition}
       >
-        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-zinc-900 p-6">
+        <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
               Volunteer Application
