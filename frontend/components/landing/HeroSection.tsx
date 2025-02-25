@@ -13,7 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from "@/components/ui/dialog"; // Changed to shadcn dialog
+} from "@/components/ui/dialog"; // Using shadcn dialog
 import { Loader2 } from "lucide-react";
 
 // Define type for user profile
@@ -182,7 +182,7 @@ export default function HeroSection() {
       toast.error("Please add at least one skill.");
       return;
     }
-    // Validate reason
+    // Validate reason (to be sent as 'about')
     if (!volunteerReason.trim()) {
       toast.error("Please fill the reason for volunteering.");
       return;
@@ -191,7 +191,11 @@ export default function HeroSection() {
       const token = localStorage.getItem("jwtToken");
       await axios.post(
         "http://localhost:8081/api/volunteers/add",
-        { volunteerTypes, volunteerSkills, volunteerReason },
+        {
+          volunteeringTypes: volunteerTypes,
+          skills: volunteerSkills,
+          about: volunteerReason
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Volunteer application submitted successfully!");
