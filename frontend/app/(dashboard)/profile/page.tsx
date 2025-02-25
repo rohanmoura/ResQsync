@@ -1,29 +1,32 @@
-"use client";
-import Link from "next/link";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useTheme } from "next-themes";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Card } from "@/components/ui/card";
+import Link from "next/link";
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
-import {
-    Tooltip,
-    TooltipContent,
-    TooltipTrigger,
-    TooltipProvider,
-} from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { Pencil, ArrowLeft } from "lucide-react";
+import { Card } from "@/components/ui/card";
 import {
     Dialog,
     DialogTrigger,
     DialogContent,
+    DialogHeader,
     DialogTitle,
     DialogClose,
 } from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Pencil } from "lucide-react";
+import { EditVolunteerProfileForm } from "@/components/forms/EditVolunteerProfileForm";
+import { Avatar } from "@/components/ui/avatar";
+import { withAuth } from "@/app/_components/withAuth";
+import { toast } from "sonner";
+import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
+import { useTheme } from "next-themes";
+import { TextShimmer } from "@/components/core/text-shimmer";
+import { GlowEffect } from "@/components/core/glow-effect";
+
+// Import AlertDialog components for delete account confirmation
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -32,24 +35,15 @@ import {
     AlertDialogTitle,
     AlertDialogDescription,
     AlertDialogFooter,
-    AlertDialogAction,
     AlertDialogCancel,
+    AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { toast } from "sonner";
-import { GlowEffect } from "@/components/core/glow-effect";
-import { TextShimmer } from "@/components/core/text-shimmer";
-import { withAuth } from "@/app/_components/withAuth";
-import { EditProfileFormWrapper } from "@/app/_components/EditProfileFormWrapper";
-import { EditVolunteerProfileForm } from "@/components/forms/EditVolunteerProfileForm";
 
 // Helper: Mask phone number
 function maskPhoneNumber(phone: string): string {
     if (!phone) return "";
     if (phone.length < 4) return phone;
-    const firstTwo = phone.slice(0, 2);
-    const lastTwo = phone.slice(-2);
-    const middle = phone.length - 4;
-    return `${firstTwo}${"*".repeat(middle)}${lastTwo}`;
+    return `${phone.slice(0, 2)}${"*".repeat(phone.length - 4)}${phone.slice(-2)}`;
 }
 
 function ProfileCard() {
@@ -79,9 +73,10 @@ function ProfileCard() {
         about: "",
     });
 
-    // Two separate dialog states:
+    // Two separate dialog states for editing basic info and volunteer details:
     const [openUserEdit, setOpenUserEdit] = useState(false);
     const [openVolunteerEdit, setOpenVolunteerEdit] = useState(false);
+    const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
@@ -184,7 +179,7 @@ function ProfileCard() {
                 skills: data.skills || [],
                 about: data.about || "",
             };
-            // Here you can use a dedicated endpoint for volunteer details if needed.
+            // Use dedicated endpoint for volunteer details.
             const response = await axios.post(
                 "http://localhost:8081/api/volunteers/update",
                 updateVolunteerDto,
@@ -209,6 +204,7 @@ function ProfileCard() {
         }
     };
 
+    // Delete account with alert dialog confirmation
     const handleDeleteAccount = async () => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -216,6 +212,7 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
+            // Remove tokens before deletion
             localStorage.removeItem("jwtToken");
             localStorage.removeItem("jwtExp");
             await axios.delete("http://localhost:8081/api/user/delete", {
@@ -240,11 +237,14 @@ function ProfileCard() {
         router.push("/");
     };
 
+    // Improved image resolution logic:
     const resolvedAvatarUrl = userProfile.profilePicture
-        ? userProfile.profilePicture.startsWith("http")
+        ? userProfile.profilePicture.startsWith("http") || userProfile.profilePicture.startsWith("blob:")
             ? userProfile.profilePicture
             : userProfile.profilePicture.length > 100
-                ? `data:image/png;base64,${userProfile.profilePicture}`
+                ? userProfile.profilePicture.startsWith("/9j/")
+                    ? `data:image/jpeg;base64,${userProfile.profilePicture}`
+                    : `data:image/png;base64,${userProfile.profilePicture}`
                 : `http://localhost:8081/${userProfile.profilePicture}`
         : null;
 
@@ -285,7 +285,7 @@ function ProfileCard() {
                 {/* Profile Card */}
                 <div className="flex-grow flex items-center justify-center">
                     <Card className="relative w-full max-w-md p-8 bg-card text-foreground rounded-lg shadow-lg">
-                        {/* Pencil icons for editing */}
+                        {/* Pencil icon for basic user edit (always visible) */}
                         <div className="absolute top-4 right-12">
                             <Button
                                 variant="ghost"
@@ -296,6 +296,7 @@ function ProfileCard() {
                                 <Pencil className="w-5 h-5" />
                             </Button>
                         </div>
+                        {/* Pencil icon for volunteer edit – shown only if user is a volunteer */}
                         {isVolunteer && (
                             <div className="absolute top-4 right-4">
                                 <Button
@@ -309,7 +310,7 @@ function ProfileCard() {
                             </div>
                         )}
 
-                        {/* User Edit Dialog */}
+                        {/* Basic User Edit Dialog */}
                         <Dialog open={openUserEdit} onOpenChange={setOpenUserEdit}>
                             <DialogTrigger asChild>
                                 <div />
@@ -346,8 +347,31 @@ function ProfileCard() {
                             </Dialog>
                         )}
 
+                        {/* Delete Account Alert Dialog */}
+                        <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
+                            <AlertDialogTrigger asChild>
+                                <div />
+                            </AlertDialogTrigger>
+                            <AlertDialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-sm border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl">
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        This action cannot be undone. This will permanently delete your account.
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel onClick={() => setOpenDeleteDialog(false)}>
+                                        Cancel
+                                    </AlertDialogCancel>
+                                    <AlertDialogAction onClick={handleDeleteAccount}>
+                                        Continue
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+
                         {/* Profile Content */}
-                        <div className="flex flex-col items-center space-y-6">
+                        <div className="flex flex-col items-center space-y-6 mt-8">
                             <Avatar className="w-24 h-24">
                                 {resolvedAvatarUrl ? (
                                     <img src={resolvedAvatarUrl} alt="User Avatar" className="w-full h-full object-cover rounded-full" />
@@ -383,8 +407,8 @@ function ProfileCard() {
                                         )}
                                     </div>
                                 )}
-                                {/* Volunteer Details Section */}
-                                {isVolunteer && (
+                                {/* Volunteer Details Section – expands the card dynamically */}
+                                {isVolunteer && (userProfile.volunteeringTypes.length > 0 || userProfile.skills.length > 0 || userProfile.about) && (
                                     <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg mt-4">
                                         {userProfile.volunteeringTypes && userProfile.volunteeringTypes.length > 0 && (
                                             <>
@@ -416,7 +440,8 @@ function ProfileCard() {
                                 <Label htmlFor="dark-mode-switch" className="text-sm">Dark Mode</Label>
                                 <Switch id="dark-mode-switch" className="ml-2" checked={isDark} onCheckedChange={handleDarkModeToggle} />
                             </div>
-                            <Button variant="destructive" className="w-full" onClick={handleDeleteAccount}>
+                            {/* Delete Account Button – triggers alert dialog */}
+                            <Button variant="destructive" className="w-full" onClick={() => setOpenDeleteDialog(true)}>
                                 Delete Account
                             </Button>
                             <Button variant="outline" className="w-full" onClick={handleLogout}>
@@ -431,5 +456,3 @@ function ProfileCard() {
 }
 
 export default withAuth(ProfileCard);
-
-

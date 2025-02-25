@@ -10,6 +10,13 @@ import { useRouter } from "next/navigation";
 import axios from "axios";
 
 export default function Navbar() {
+    // Updated user state to include roles
+    const [user, setUser] = useState<{ name: string; profilePicture?: string; roles?: string[] } | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const router = useRouter();
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
+
     const TABS = [
         { label: "About Us", href: "#about" },
         { label: "Solutions", href: "#solutions" },
@@ -18,30 +25,9 @@ export default function Navbar() {
         { label: "News Data", href: "/news-data" },
     ];
 
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [user, setUser] = useState<{ name: string; profilePicture?: string } | null>(null);
-    const router = useRouter();
-    const mobileMenuRef = useRef<HTMLDivElement>(null);
-
-    // Close mobile menu when clicking outside
+    // Check authentication status and fetch user profile (including roles)
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
-            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-                setIsMenuOpen(false);
-            }
-        }
-        if (isMenuOpen) {
-            document.addEventListener("mousedown", handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
-    }, [isMenuOpen]);
-
-    // Check authentication status and fetch user profile if authenticated
-    useEffect(() => {
-        const checkAuthStatus = async () => {
+        async function checkAuthStatus() {
             const token = localStorage.getItem("jwtToken");
             const exp = localStorage.getItem("jwtExp");
 
@@ -64,21 +50,41 @@ export default function Navbar() {
                             setUser({
                                 name: response.data.name || "User",
                                 profilePicture: response.data.profilePicture || "",
+                                roles: response.data.roles || [],
                             });
                         }
                     } catch (error) {
                         console.error("Error fetching profile:", error);
-                        setUser({ name: "User", profilePicture: "" });
+                        setUser({ name: "User", profilePicture: "", roles: [] });
                     }
                 }
             } else {
                 setIsAuthenticated(false);
                 setUser(null);
             }
-        };
-
+        }
         checkAuthStatus();
     }, [router]);
+
+    // Dynamically add "Help Requests" tab if user has both "USER" and "VOLUNTEER" roles
+    const showHelpRequests =
+        user && user.roles && user.roles.includes("USER") && user.roles.includes("VOLUNTEER");
+    const finalTabs = showHelpRequests ? [...TABS, { label: "Help Requests", href: "/help-request" }] : TABS;
+
+    // Close mobile menu when clicking outside
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
+            }
+        }
+        if (isMenuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isMenuOpen]);
 
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
@@ -90,12 +96,12 @@ export default function Navbar() {
                 {/* Center: Navigation Menu */}
                 <div className="hidden md:flex space-x-8 relative">
                     <AnimatedBackground
-                        defaultValue={TABS[0].label}
+                        defaultValue={finalTabs[0].label}
                         className="rounded-lg bg-zinc-100 dark:bg-zinc-800"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
                         enableHover
                     >
-                        {TABS.map((tab, index) => (
+                        {finalTabs.map((tab, index) => (
                             <Link
                                 key={index}
                                 href={tab.href}
@@ -114,7 +120,7 @@ export default function Navbar() {
                     <ModeToggle />
                     <div className="relative inline-block">
                         <GlowEffect
-                            colors={['#6366F1', '#818CF8', '#A78BFA', '#C7D2FE']}
+                            colors={["#6366F1", "#818CF8", "#A78BFA", "#C7D2FE"]}
                             mode="colorShift"
                             blur="medium"
                             duration={2}
@@ -130,9 +136,7 @@ export default function Navbar() {
                                             onError={(e) => (e.currentTarget.src = "")}
                                         />
                                     ) : (
-                                        <AvatarFallback>
-                                            {user?.name.charAt(0).toUpperCase() || "U"}
-                                        </AvatarFallback>
+                                        <AvatarFallback>{user?.name.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                                     )}
                                 </Avatar>
                             </Link>
@@ -140,10 +144,7 @@ export default function Navbar() {
                             <Link href="/signin" passHref prefetch={false}>
                                 <Button
                                     variant="ghost"
-                                    className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold 
-                  bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 
-                  dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent 
-                  dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
+                                    className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
                                 >
                                     Log In
                                 </Button>
@@ -163,7 +164,7 @@ export default function Navbar() {
             {/* Mobile Dropdown Menu */}
             {isMenuOpen && (
                 <div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40">
-                    {TABS.map((tab, index) => (
+                    {finalTabs.map((tab, index) => (
                         <Link
                             key={index}
                             href={tab.href}

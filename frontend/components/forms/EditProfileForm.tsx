@@ -100,12 +100,19 @@ export function EditProfileForm({ onSaveProfile, userProfile }: EditProfileFormP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { ref: formFileRef } = form.register("profilePicture");
 
+  // Updated previewUrl logic:
+  // - If the URL starts with "http" or "blob:" use it directly.
+  // - If length > 100, assume it's a base64 string.
+  //   If it starts with "/9j/", assume it's JPEG, otherwise use PNG.
+  // - Otherwise, treat it as a relative URL.
   const previewUrl = currentAvatarUrl
     ? currentAvatarUrl.startsWith("http") || currentAvatarUrl.startsWith("blob:")
       ? currentAvatarUrl
       : currentAvatarUrl.length > 100
-      ? `data:image/png;base64,${currentAvatarUrl}`
-      : `http://localhost:8081/${currentAvatarUrl}`
+        ? currentAvatarUrl.startsWith("/9j/")
+          ? `data:image/jpeg;base64,${currentAvatarUrl}`
+          : `data:image/png;base64,${currentAvatarUrl}`
+        : `http://localhost:8081/${currentAvatarUrl}`
     : null;
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

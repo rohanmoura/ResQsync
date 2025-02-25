@@ -1,30 +1,23 @@
-"use client";
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
+import { useRouter } from "next/router";
 import axios from "axios";
-import { Button } from "@/components/ui/button";
-import { TextEffect } from "../core/text-effect";
-import { TextLoop } from "../core/text-loop";
-import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogClose,
-} from "@/components/ui/dialog"; // Using shadcn dialog
+import { toast } from "sonner"; // assuming you're using 'sonner' for toast notifications
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import { TextEffect } from "@/components/core/text-effect";
+import { TextLoop } from "@/components/core/text-loop";
 
-// Define type for user profile
-interface UserProfile {
+type UserProfile = {
   name: string;
   email: string;
-  phone?: string;
-  area?: string;
-  bio?: string;
-  roles?: string[];
-}
+  roles: string[];
+  phone: string;
+  area: string;
+  bio: string;
+  profilePicture: string | null;
+  // any other fields, e.g., volunteer details...
+};
 
 export default function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -94,6 +87,8 @@ export default function HeroSection() {
 
   // Derive volunteer status from userProfile roles (now expecting "VOLUNTEER")
   const isVolunteer = userProfile?.roles?.includes("VOLUNTEER") ?? false;
+  // Derive help requester status if needed (assuming "HELPREQUESTER" role)
+  const isHelpRequester = userProfile?.roles?.includes("HELPREQUESTER") ?? false;
 
   const handleGetHelpButtonClick = () => {
     if (!isAuthenticated) {
@@ -115,6 +110,12 @@ export default function HeroSection() {
       toast.error(
         `Please fill your ${missing.join(", ")} details before requesting help.`
       );
+      return;
+    }
+    // New validation:
+    // If user is both a volunteer and a regular user, block help request until volunteer role is removed.
+    if (userProfile.roles.includes("VOLUNTEER")) {
+      toast.error("You are currently a volunteer so you cannot request help. Please remove your volunteer role to request help.");
       return;
     }
     setGetHelpDialogOpen(true);
@@ -140,6 +141,12 @@ export default function HeroSection() {
       toast.error(
         `Please fill your ${missing.join(", ")} details before volunteering.`
       );
+      return;
+    }
+    // New validation:
+    // If user's role includes HELPREQUESTER, block volunteering until that role is removed.
+    if (userProfile.roles.includes("HELPREQUESTER")) {
+      toast.error("You are currently a help requester so you cannot volunteer. Please remove your help requester role to volunteer.");
       return;
     }
     setVolunteerDialogOpen(true);
@@ -178,9 +185,7 @@ export default function HeroSection() {
     }
   };
 
-  const handleGetHelpSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!helpType.trim()) {
       toast.error("Please fill the type of help.");
@@ -206,9 +211,7 @@ export default function HeroSection() {
     }
   };
 
-  const handleVolunteerSubmit = async (
-    e: React.FormEvent<HTMLFormElement>
-  ) => {
+  const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (volunteerTypes.length === 0) {
       toast.error("Please select at least one type of volunteer support.");
@@ -244,9 +247,7 @@ export default function HeroSection() {
       if (userProfile) {
         setUserProfile({
           ...userProfile,
-          roles: userProfile.roles
-            ? [...userProfile.roles, "VOLUNTEER"]
-            : ["VOLUNTEER"],
+          roles: userProfile.roles ? [...userProfile.roles, "VOLUNTEER"] : ["VOLUNTEER"],
         });
       }
     } catch (error) {
