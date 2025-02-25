@@ -181,6 +181,7 @@ function ProfileCard() {
     };
 
     // Handle account deletion
+    // Handle account deletion
     const handleDeleteAccount = async () => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -188,6 +189,10 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
+            // Log out user: remove token first
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("jwtExp");
+            // Now delete the account using the stored token
             await axios.delete("http://localhost:8081/api/user/delete", {
                 headers: { Authorization: `Bearer ${token}` },
             });
@@ -201,10 +206,12 @@ function ProfileCard() {
         }
     };
 
+
     // Handle logout
     const handleLogout = () => {
         console.log("Logout triggered");
         localStorage.removeItem("jwtToken");
+        localStorage.removeItem("jwtExp");
         console.log("Token after removal:", localStorage.getItem("jwtToken"));
         toast("Logged out", {
             description: "You have been logged out successfully.",
