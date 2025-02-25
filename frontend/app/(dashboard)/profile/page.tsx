@@ -1,5 +1,6 @@
+"use client";
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import Link from "next/link";
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
@@ -38,6 +39,7 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from "@/components/ui/alert-dialog";
+import { EditVolunteerProfileFormWrapper } from "@/app/_components/EditVolunteerProfileFormWrapper";
 
 // Helper: Mask phone number
 function maskPhoneNumber(phone: string): string {
@@ -117,6 +119,18 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
+            // If user is volunteer, disallow empty name, phone, area, or bio.
+            if (userProfile.roles.includes("VOLUNTEER")) {
+                if (
+                    !data.name?.trim() ||
+                    !data.phone?.trim() ||
+                    !data.area?.trim() ||
+                    !data.bio?.trim()
+                ) {
+                    toast.error("As a volunteer, you cannot leave any user field blank.");
+                    return; // Stop here; do NOT proceed with the update
+                }
+            }
             // Prepare update for basic details
             const updateDto = {
                 name: data.name ?? "",
@@ -174,6 +188,18 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
+            // If user is volunteer, disallow empty volunteer fields (types, skills, about).
+            if (userProfile.roles.includes("VOLUNTEER")) {
+                if (
+                    !data.volunteeringTypes?.length ||
+                    !data.skills?.length ||
+                    !data.about?.trim()
+                ) {
+                    toast.error("As a volunteer, you cannot leave any volunteer field blank.");
+                    return; // Stop here; do NOT proceed with the update
+                }
+            }
+
             const updateVolunteerDto = {
                 volunteeringTypes: data.volunteeringTypes || [],
                 skills: data.skills || [],
@@ -285,30 +311,22 @@ function ProfileCard() {
                 {/* Profile Card */}
                 <div className="flex-grow flex items-center justify-center">
                     <Card className="relative w-full max-w-md p-8 bg-card text-foreground rounded-lg shadow-lg">
-                        {/* Pencil icon for basic user edit (always visible) */}
+                        {/* User Edit Pencil with Tooltip */}
                         <div className="absolute top-4 right-12">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setOpenUserEdit(true)}
-                                className="hover:bg-gray-200 dark:hover:bg-gray-800"
-                            >
-                                <Pencil className="w-5 h-5" />
-                            </Button>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setOpenUserEdit(true)}
+                                        className="hover:bg-gray-200 dark:hover:bg-gray-800"
+                                    >
+                                        <Pencil className="w-5 h-5" />
+                                    </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Edit Profile</TooltipContent>
+                            </Tooltip>
                         </div>
-                        {/* Pencil icon for volunteer edit – shown only if user is a volunteer */}
-                        {isVolunteer && (
-                            <div className="absolute top-4 right-4">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setOpenVolunteerEdit(true)}
-                                    className="hover:bg-gray-200 dark:hover:bg-gray-800"
-                                >
-                                    <Pencil className="w-5 h-5" />
-                                </Button>
-                            </div>
-                        )}
 
                         {/* Basic User Edit Dialog */}
                         <Dialog open={openUserEdit} onOpenChange={setOpenUserEdit}>
@@ -341,7 +359,14 @@ function ProfileCard() {
                                 </DialogTrigger>
                                 <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl max-h-[calc(100vh-4rem)] overflow-auto">
                                     <DialogTitle className="sr-only">Edit Volunteer Details</DialogTitle>
-                                    <EditVolunteerProfileForm onSaveProfile={handleVolunteerSave} userProfile={userProfile} />
+                                    <EditVolunteerProfileFormWrapper
+                                        onSaveProfile={handleVolunteerSave}
+                                        userProfile={{
+                                            volunteeringTypes: userProfile.volunteeringTypes,
+                                            skills: userProfile.skills,
+                                            about: userProfile.about,
+                                        }}
+                                    />
                                     <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
                                 </DialogContent>
                             </Dialog>
@@ -408,28 +433,68 @@ function ProfileCard() {
                                     </div>
                                 )}
                                 {/* Volunteer Details Section – expands the card dynamically */}
-                                {isVolunteer && (userProfile.volunteeringTypes.length > 0 || userProfile.skills.length > 0 || userProfile.about) && (
-                                    <div className="w-full grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg mt-4">
-                                        {userProfile.volunteeringTypes && userProfile.volunteeringTypes.length > 0 && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Volunteer Types:</div>
-                                                <div className="text-gray-700">{userProfile.volunteeringTypes.join(", ")}</div>
-                                            </>
-                                        )}
-                                        {userProfile.skills && userProfile.skills.length > 0 && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Skills:</div>
-                                                <div className="text-gray-700">{userProfile.skills.join(", ")}</div>
-                                            </>
-                                        )}
-                                        {userProfile.about && (
-                                            <>
-                                                <div className="font-medium text-gray-700">Volunteer Reason:</div>
-                                                <div className="text-gray-700">{userProfile.about}</div>
-                                            </>
-                                        )}
-                                    </div>
-                                )}
+                                {isVolunteer && (
+                                    userProfile.volunteeringTypes.length > 0 ||
+                                    userProfile.skills.length > 0 ||
+                                    userProfile.about
+                                ) && (
+                                        <div className="w-full relative grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg mt-4">
+                                            {/* Step: Add the volunteer pencil up top-right */}
+                                            <div className="absolute top-2 right-2">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => setOpenVolunteerEdit(true)}
+                                                            className="hover:bg-gray-200 dark:hover:bg-gray-800"
+                                                        >
+                                                            <Pencil className="w-5 h-5" />
+                                                        </Button>
+                                                    </TooltipTrigger>
+                                                    <TooltipContent>Edit Volunteer Details</TooltipContent>
+                                                </Tooltip>
+                                            </div>
+                                            {userProfile.volunteeringTypes && userProfile.volunteeringTypes.length > 0 && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Volunteer Types:</div>
+                                                    <div className="text-gray-700">
+                                                        {
+                                                            // Transform each array entry, remove bracket notation, etc.
+                                                            userProfile.volunteeringTypes
+                                                                .flatMap((typeEntry) => {
+                                                                    // 1) Remove any leading/trailing brackets
+                                                                    let cleaned = typeEntry.replace(/^\[|\]$/g, "");
+                                                                    // 2) Split by commas
+                                                                    let splitted = cleaned.split(",");
+                                                                    // 3) Clean each piece (remove prefix and underscores)
+                                                                    return splitted.map((s) =>
+                                                                        s
+                                                                            .trim()
+                                                                            .replace("VolunterrTypes.", "") // remove "VolunterrTypes."
+                                                                            .replace(/_/g, " ") // replace underscores with spaces
+                                                                    );
+                                                                })
+                                                                .join(", ")
+                                                        }
+                                                    </div>
+                                                </>
+                                            )}
+                                            {userProfile.skills && userProfile.skills.length > 0 && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Skills:</div>
+                                                    <div className="text-gray-700">{userProfile.skills.join(", ")}</div>
+                                                </>
+                                            )}
+                                            {userProfile.about && (
+                                                <>
+                                                    <div className="font-medium text-gray-700">Volunteer Reason:</div>
+                                                    <div className="text-gray-700">{userProfile.about}</div>
+                                                </>
+                                            )}
+                                        </div>
+                                    )}
+
                             </div>
                         </div>
 

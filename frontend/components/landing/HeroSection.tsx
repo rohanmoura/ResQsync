@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner"; // assuming you're using 'sonner' for toast notifications
 import { Loader2 } from "lucide-react";
