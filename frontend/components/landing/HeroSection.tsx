@@ -13,8 +13,7 @@ import {
   DialogTitle,
   DialogDescription,
   DialogClose,
-} from "@/components/core/dialog";
-import { Variants, Transition } from "motion/react";
+} from "@/components/ui/dialog"; // Changed to shadcn dialog
 import { Loader2 } from "lucide-react";
 
 // Define type for user profile
@@ -56,19 +55,6 @@ export default function HeroSection() {
   const [volunteerTypes, setVolunteerTypes] = useState<string[]>([]);
   const [volunteerSkillInput, setVolunteerSkillInput] = useState("");
   const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
-
-  // Motion Dialog custom variants and transition
-  const customVariants: Variants = {
-    initial: { opacity: 0, scale: 0.95, y: 40 },
-    animate: { opacity: 1, scale: 1, y: 0 },
-    exit: { opacity: 0, scale: 0.95, y: 40 },
-  };
-
-  const customTransition: Transition = {
-    type: "spring",
-    bounce: 0,
-    duration: 0.25,
-  };
 
   // Helper to check which required fields are missing (ignoring helpRequests)
   const getMissingFields = (profile: UserProfile) => {
@@ -300,12 +286,7 @@ export default function HeroSection() {
       </div>
 
       {/* Get Help Dialog */}
-      <Dialog
-        open={getHelpDialogOpen}
-        onOpenChange={setGetHelpDialogOpen}
-        variants={customVariants}
-        transition={customTransition}
-      >
+      <Dialog open={getHelpDialogOpen} onOpenChange={setGetHelpDialogOpen}>
         <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
@@ -336,12 +317,7 @@ export default function HeroSection() {
       </Dialog>
 
       {/* Volunteer Dialog */}
-      <Dialog
-        open={volunteerDialogOpen}
-        onOpenChange={setVolunteerDialogOpen}
-        variants={customVariants}
-        transition={customTransition}
-      >
+      <Dialog open={volunteerDialogOpen} onOpenChange={setVolunteerDialogOpen}>
         <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
