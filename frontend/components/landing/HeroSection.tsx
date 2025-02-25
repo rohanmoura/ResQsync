@@ -6,7 +6,6 @@ import { TextEffect } from "../core/text-effect";
 import { TextLoop } from "../core/text-loop";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
-// Importing motion primitives dialog components
 import {
   Dialog,
   DialogContent,
@@ -16,11 +15,22 @@ import {
   DialogClose,
 } from "@/components/core/dialog";
 import { Variants, Transition } from "motion/react";
+import { Loader2 } from "lucide-react";
+
+// Define type for user profile
+interface UserProfile {
+  name: string;
+  phone?: string;
+  area?: string;
+  bio?: string;
+  // add more fields if needed
+}
 
 export default function HeroSection() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileComplete, setIsProfileComplete] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
 
   // Dialog open states
@@ -31,8 +41,21 @@ export default function HeroSection() {
   const [helpType, setHelpType] = useState("");
   const [helpDescription, setHelpDescription] = useState("");
 
-  // Form state for Volunteer
+  // Form states for Volunteer
   const [volunteerReason, setVolunteerReason] = useState("");
+  // New volunteer dialog states:
+  const volunteerTypeOptions = [
+    "MEDICAL_ASSISTANCE",
+    "PATIENT_SUPPORT",
+    "ADMINISTRATIVE_SUPPORT",
+    "COMMUNITY_HEALTH",
+    "EMERGENCY_RESPONSE",
+    "COUNSELING_SUPPORT",
+    "TECHNICAL_IT_SUPPORT",
+  ];
+  const [volunteerTypes, setVolunteerTypes] = useState<string[]>([]);
+  const [volunteerSkillInput, setVolunteerSkillInput] = useState("");
+  const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
 
   // Motion Dialog custom variants and transition
   const customVariants: Variants = {
@@ -48,7 +71,7 @@ export default function HeroSection() {
   };
 
   // Helper to check which required fields are missing (ignoring helpRequests)
-  const getMissingFields = (profile: any) => {
+  const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
     if (!profile.name) missing.push("name");
     if (!profile.phone) missing.push("phone");
@@ -74,7 +97,10 @@ export default function HeroSection() {
         .catch((error) => {
           console.error("Error fetching profile:", error);
           // Optionally, handle error (e.g., force logout or show a message)
-        });
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
   }, []);
 
@@ -96,9 +122,7 @@ export default function HeroSection() {
     const missing = getMissingFields(userProfile);
     if (missing.length > 0) {
       toast.error(
-        `Please fill your ${missing.join(
-          ", "
-        )} details before requesting help.`
+        `Please fill your ${missing.join(", ")} details before requesting help.`
       );
       return;
     }
@@ -123,9 +147,7 @@ export default function HeroSection() {
     const missing = getMissingFields(userProfile);
     if (missing.length > 0) {
       toast.error(
-        `Please fill your ${missing.join(
-          ", "
-        )} details before volunteering.`
+        `Please fill your ${missing.join(", ")} details before volunteering.`
       );
       return;
     }
@@ -164,6 +186,17 @@ export default function HeroSection() {
     e: React.FormEvent<HTMLFormElement>
   ) => {
     e.preventDefault();
+    // Validate volunteer types
+    if (volunteerTypes.length === 0) {
+      toast.error("Please select at least one type of volunteer support.");
+      return;
+    }
+    // Validate skills
+    if (volunteerSkills.length === 0) {
+      toast.error("Please add at least one skill.");
+      return;
+    }
+    // Validate reason
     if (!volunteerReason.trim()) {
       toast.error("Please fill the reason for volunteering.");
       return;
@@ -172,16 +205,49 @@ export default function HeroSection() {
       const token = localStorage.getItem("jwtToken");
       await axios.post(
         "http://localhost:8081/api/volunteers/add",
-        { volunteerReason },
+        { volunteerTypes, volunteerSkills, volunteerReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Volunteer application submitted successfully!");
+      // Reset volunteer form states
       setVolunteerDialogOpen(false);
+      setVolunteerTypes([]);
+      setVolunteerSkills([]);
+      setVolunteerSkillInput("");
       setVolunteerReason("");
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
     }
   };
+
+  const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const skill = volunteerSkillInput.trim();
+      if (!skill) return;
+      if (volunteerSkills.includes(skill)) {
+        toast.error("Skill already added.");
+        return;
+      }
+      if (volunteerSkills.length >= 5) {
+        toast.error("You can add a maximum of 5 skills.");
+        return;
+      }
+      setVolunteerSkills([...volunteerSkills, skill]);
+      setVolunteerSkillInput("");
+    }
+  };
+
+  const removeSkill = (skill: string) => {
+    setVolunteerSkills(volunteerSkills.filter((s) => s !== skill));
+  };
+
+  if (loading)
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
 
   return (
     <section
@@ -240,7 +306,7 @@ export default function HeroSection() {
         variants={customVariants}
         transition={customTransition}
       >
-        <DialogContent className="max-w-lg bg-white dark:bg-zinc-900 p-6">
+        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-zinc-900 p-6">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
               Request Assistance
@@ -276,22 +342,75 @@ export default function HeroSection() {
         variants={customVariants}
         transition={customTransition}
       >
-        <DialogContent className="max-w-lg bg-white dark:bg-zinc-900 p-6">
+        <DialogContent className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white dark:bg-zinc-900 p-6">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
               Volunteer Application
             </DialogTitle>
             <DialogDescription className="text-zinc-600 dark:text-zinc-400">
-              Please provide your reason for volunteering.
+              Please fill in the details below to apply as a volunteer.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleVolunteerSubmit} className="flex flex-col gap-4 mt-4">
-            <textarea
-              value={volunteerReason}
-              onChange={(e) => setVolunteerReason(e.target.value)}
-              placeholder="Reason for Volunteering"
-              className="border p-2 rounded"
-            ></textarea>
+            {/* Volunteer Types Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">Types of Volunteer</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {volunteerTypeOptions.map((type) => (
+                  <label key={type} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      value={type}
+                      checked={volunteerTypes.includes(type)}
+                      onChange={() => {
+                        if (volunteerTypes.includes(type)) {
+                          setVolunteerTypes(volunteerTypes.filter((t) => t !== type));
+                        } else {
+                          setVolunteerTypes([...volunteerTypes, type]);
+                        }
+                      }}
+                    />
+                    <span className="text-sm">{type.replace(/_/g, " ")}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            {/* Skills Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">Skills</h3>
+              <input
+                type="text"
+                value={volunteerSkillInput}
+                onChange={(e) => setVolunteerSkillInput(e.target.value)}
+                onKeyDown={handleSkillKeyDown}
+                placeholder="Type a skill and press Enter"
+                className="border p-2 rounded w-full"
+              />
+              <div className="flex flex-wrap mt-2 gap-2">
+                {volunteerSkills.map((skill) => (
+                  <div key={skill} className="flex items-center bg-gray-200 dark:bg-gray-700 rounded px-2 py-1">
+                    <span className="text-sm">{skill}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(skill)}
+                      className="ml-1 text-xs text-red-500"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* Volunteer Reason Section */}
+            <div>
+              <h3 className="text-lg font-medium mb-2">Reason for Volunteering</h3>
+              <textarea
+                value={volunteerReason}
+                onChange={(e) => setVolunteerReason(e.target.value)}
+                placeholder="Enter your reason for volunteering"
+                className="border p-2 rounded w-full"
+              ></textarea>
+            </div>
             <Button type="submit">Submit</Button>
           </form>
           <DialogClose />
