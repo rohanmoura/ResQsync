@@ -19,6 +19,7 @@ import { Loader2 } from "lucide-react";
 // Define type for user profile
 interface UserProfile {
   name: string;
+  email: string;
   phone?: string;
   area?: string;
   bio?: string;
@@ -91,8 +92,8 @@ export default function HeroSection() {
     }
   }, []);
 
-  // Derive volunteer status from userProfile roles
-  const isVolunteer = userProfile?.roles?.includes("Volunterr") ?? false;
+  // Derive volunteer status from userProfile roles (now expecting "VOLUNTEER")
+  const isVolunteer = userProfile?.roles?.includes("VOLUNTEER") ?? false;
 
   const handleGetHelpButtonClick = () => {
     if (!isAuthenticated) {
@@ -144,7 +145,7 @@ export default function HeroSection() {
     setVolunteerDialogOpen(true);
   };
 
-  // Delete Volunteer handler with loading indicator
+  // Delete Volunteer handler with loading indicator and email parameter
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -155,15 +156,19 @@ export default function HeroSection() {
     }
     setIsVolunteerDeleting(true);
     try {
-      await axios.delete("http://localhost:8081/api/volunteers/deletevolunteerrole", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      await axios.delete(
+        "http://localhost:8081/api/volunteers/deletevolunteerrole",
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { email: userProfile?.email }, // Pass email as a parameter
+        }
+      );
       toast.success("Volunteer role removed successfully!");
-      // Update userProfile to remove "Volunterr" from roles
+      // Update userProfile to remove "VOLUNTEER" from roles
       if (userProfile?.roles) {
         setUserProfile({
           ...userProfile,
-          roles: userProfile.roles.filter((role) => role !== "Volunterr"),
+          roles: userProfile.roles.filter((role) => role !== "VOLUNTEER"),
         });
       }
     } catch (error) {
@@ -235,11 +240,13 @@ export default function HeroSection() {
       setVolunteerSkills([]);
       setVolunteerSkillInput("");
       setVolunteerReason("");
-      // Update profile to reflect volunteer role
+      // Update profile to reflect volunteer role (set to "VOLUNTEER")
       if (userProfile) {
         setUserProfile({
           ...userProfile,
-          roles: userProfile.roles ? [...userProfile.roles, "Volunterr"] : ["Volunterr"],
+          roles: userProfile.roles
+            ? [...userProfile.roles, "VOLUNTEER"]
+            : ["VOLUNTEER"],
         });
       }
     } catch (error) {
