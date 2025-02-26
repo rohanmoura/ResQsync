@@ -27,7 +27,6 @@ import { useTheme } from "next-themes";
 import { TextShimmer } from "@/components/core/text-shimmer";
 import { GlowEffect } from "@/components/core/glow-effect";
 
-// Import AlertDialog components for delete account confirmation
 import {
     AlertDialog,
     AlertDialogTrigger,
@@ -75,7 +74,6 @@ function ProfileCard() {
         about: "",
     });
 
-    // Two separate dialog states for editing basic info and volunteer details:
     const [openUserEdit, setOpenUserEdit] = useState(false);
     const [openVolunteerEdit, setOpenVolunteerEdit] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -111,7 +109,7 @@ function ProfileCard() {
             });
     }, [router]);
 
-    // Save basic user details
+    // Save basic user details (unchanged)
     const handleProfileSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -131,7 +129,7 @@ function ProfileCard() {
             formData.append("updateDto", JSON.stringify(updateDto));
 
             if (data.removeAvatar) {
-                formData.append("removeAvatar", "true"); // Explicitly mark for removal
+                formData.append("removeAvatar", "true");
             } else if (data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
             }
@@ -151,7 +149,7 @@ function ProfileCard() {
 
             setUserProfile((prev) => ({
                 ...prev,
-                name: updatedData.name || prev.name, // Preserve name update
+                name: updatedData.name || prev.name,
                 phone: updatedData.phone || prev.phone,
                 area: updatedData.area || prev.area,
                 bio: updatedData.bio || prev.bio,
@@ -168,9 +166,6 @@ function ProfileCard() {
             toast.error("Failed to update profile");
         }
     };
-
-
-    // Save volunteer-specific details
     const handleVolunteerSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -182,18 +177,10 @@ function ProfileCard() {
             // Helper function to clean a raw volunteering type string
             const cleanVolunteerType = (raw: string): string[] => {
                 let str = raw;
-                // Remove surrounding brackets if present
                 if (str.startsWith('[') && str.endsWith(']')) {
                     str = str.slice(1, -1);
                 }
-                // Split by comma and clean each part
-                return str.split(",").map((p) => {
-                    let cleaned = p.trim();
-                    if (cleaned.startsWith("VolunterrTypes.")) {
-                        cleaned = cleaned.slice("VolunterrTypes.".length);
-                    }
-                    return cleaned;
-                });
+                return str.split(",").map((p) => p.trim());
             };
 
             let cleanedVolunteerTypes: string[] = [];
@@ -212,27 +199,35 @@ function ProfileCard() {
             } else if (typeof data.volunteeringTypes === "string") {
                 cleanedVolunteerTypes = cleanVolunteerType(data.volunteeringTypes);
             }
+            // Deduplicate volunteer types
+            cleanedVolunteerTypes = Array.from(new Set(cleanedVolunteerTypes));
 
             const updateVolunteerDto = {
-                volunteeringTypes: cleanedVolunteerTypes,
-                skills: data.skills || [],
-                about: data.about || "",
+                volunteeringTypes:
+                    cleanedVolunteerTypes.length > 0 ? cleanedVolunteerTypes : userProfile.volunteeringTypes,
+                // Explicitly cast data.skills as string[] to ensure the type matches.
+                skills: data.skills && data.skills.length > 0
+                    ? Array.from(new Set(data.skills as string[]))
+                    : userProfile.skills,
+                about: data.about && data.about.trim() !== "" ? data.about : userProfile.about,
             };
 
-            const response = await axios.post(
+            await axios.post(
                 "http://localhost:8081/api/volunteers/update",
                 updateVolunteerDto,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
             );
-            const updatedData = response.data;
+
+            // Update state immediately with the new values
             setUserProfile((prev) => ({
                 ...prev,
-                volunteeringTypes: updatedData.volunteeringTypes || [],
-                skills: updatedData.skills || [],
-                about: updatedData.about || "",
+                volunteeringTypes: updateVolunteerDto.volunteeringTypes,
+                skills: updateVolunteerDto.skills,
+                about: updateVolunteerDto.about,
             }));
+
             toast("Volunteer profile updated", {
                 description: "Your volunteer details have been updated successfully.",
             });
@@ -244,8 +239,6 @@ function ProfileCard() {
     };
 
 
-
-    // Delete account with alert dialog confirmation
     const handleDeleteAccount = async () => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -253,7 +246,6 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // Remove tokens before deletion
             localStorage.removeItem("jwtToken");
             localStorage.removeItem("jwtExp");
             await axios.delete("http://localhost:8081/api/user/delete", {
@@ -278,7 +270,6 @@ function ProfileCard() {
         router.push("/");
     };
 
-    // Improved image resolution logic:
     const resolvedAvatarUrl = userProfile.profilePicture
         ? userProfile.profilePicture.startsWith("http") || userProfile.profilePicture.startsWith("blob:")
             ? userProfile.profilePicture
@@ -299,7 +290,6 @@ function ProfileCard() {
     return (
         <TooltipProvider>
             <div className="min-h-screen flex flex-col bg-background py-8">
-                {/* Back Button */}
                 <div className="px-6 relative">
                     <Link href="/" className="flex items-center space-x-2">
                         <Tooltip>
@@ -312,7 +302,11 @@ function ProfileCard() {
                                         duration={3}
                                         scale={1}
                                     />
-                                    <Button variant="outline" size="default" className="relative flex items-center space-x-2 hover:bg-gray-200 dark:hover:bg-gray-800">
+                                    <Button
+                                        variant="outline"
+                                        size="default"
+                                        className="relative flex items-center space-x-2 hover:bg-gray-200 dark:hover:bg-gray-800"
+                                    >
                                         <ArrowLeft className="w-5 h-5" />
                                         <span className="text-sm font-medium text-muted-foreground">Back</span>
                                     </Button>
@@ -323,10 +317,8 @@ function ProfileCard() {
                     </Link>
                 </div>
 
-                {/* Profile Card */}
                 <div className="flex-grow flex items-center justify-center">
                     <Card className="relative w-full max-w-md p-8 bg-card text-foreground rounded-lg shadow-lg">
-                        {/* User Edit Pencil with Tooltip */}
                         <div className="absolute top-4 right-12">
                             <Tooltip>
                                 <TooltipTrigger asChild>
@@ -343,7 +335,6 @@ function ProfileCard() {
                             </Tooltip>
                         </div>
 
-                        {/* Basic User Edit Dialog */}
                         <Dialog open={openUserEdit} onOpenChange={setOpenUserEdit}>
                             <DialogTrigger asChild>
                                 <div />
@@ -366,28 +357,29 @@ function ProfileCard() {
                             </DialogContent>
                         </Dialog>
 
-                        {/* Volunteer Edit Dialog */}
-                        {isVolunteer && (
-                            <Dialog open={openVolunteerEdit} onOpenChange={setOpenVolunteerEdit}>
-                                <DialogTrigger asChild>
-                                    <div />
-                                </DialogTrigger>
-                                <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl max-h-[calc(100vh-4rem)] overflow-auto">
-                                    <DialogTitle className="sr-only">Edit Volunteer Details</DialogTitle>
-                                    <EditVolunteerProfileFormWrapper
-                                        onSaveProfile={handleVolunteerSave}
-                                        userProfile={{
-                                            volunteeringTypes: userProfile.volunteeringTypes,
-                                            skills: userProfile.skills,
-                                            about: userProfile.about,
-                                        }}
-                                    />
-                                    <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
-                                </DialogContent>
-                            </Dialog>
-                        )}
+                        {isVolunteer &&
+                            ((userProfile.volunteeringTypes.length > 0) ||
+                                (userProfile.skills.length > 0) ||
+                                (userProfile.about && userProfile.about.trim() !== "")) && (
+                                <Dialog open={openVolunteerEdit} onOpenChange={setOpenVolunteerEdit}>
+                                    <DialogTrigger asChild>
+                                        <div />
+                                    </DialogTrigger>
+                                    <DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md border border-border bg-card text-card-foreground p-6 rounded-lg shadow-xl max-h-[calc(100vh-4rem)] overflow-auto">
+                                        <DialogTitle className="sr-only">Edit Volunteer Details</DialogTitle>
+                                        <EditVolunteerProfileFormWrapper
+                                            onSaveProfile={handleVolunteerSave}
+                                            userProfile={{
+                                                volunteeringTypes: userProfile.volunteeringTypes,
+                                                skills: userProfile.skills,
+                                                about: userProfile.about,
+                                            }}
+                                        />
+                                        <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
+                                    </DialogContent>
+                                </Dialog>
+                            )}
 
-                        {/* Delete Account Alert Dialog */}
                         <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
                             <AlertDialogTrigger asChild>
                                 <div />
@@ -410,7 +402,6 @@ function ProfileCard() {
                             </AlertDialogContent>
                         </AlertDialog>
 
-                        {/* Profile Content */}
                         <div className="flex flex-col items-center space-y-6 mt-8">
                             <Avatar className="w-24 h-24 flex items-center justify-center bg-muted rounded-full overflow-hidden">
                                 {resolvedAvatarUrl ? (
@@ -453,14 +444,11 @@ function ProfileCard() {
                                         )}
                                     </div>
                                 )}
-                                {/* Volunteer Details Section – expands the card dynamically */}
-                                {isVolunteer && (
-                                    userProfile.volunteeringTypes.length > 0 ||
-                                    userProfile.skills.length > 0 ||
-                                    userProfile.about
-                                ) && (
+                                {isVolunteer &&
+                                    ((userProfile.volunteeringTypes.length > 0) ||
+                                        (userProfile.skills.length > 0) ||
+                                        (userProfile.about && userProfile.about.trim() !== "")) && (
                                         <div className="w-full relative grid grid-cols-2 gap-2 bg-muted/30 p-4 rounded-lg mt-4">
-                                            {/* Step: Add the volunteer pencil up top-right */}
                                             <div className="absolute top-2 right-2">
                                                 <Tooltip>
                                                     <TooltipTrigger asChild>
@@ -480,24 +468,18 @@ function ProfileCard() {
                                                 <>
                                                     <div className="font-medium text-gray-700">Volunteer Types:</div>
                                                     <div className="text-gray-700">
-                                                        {
-                                                            // Transform each array entry, remove bracket notation, etc.
-                                                            userProfile.volunteeringTypes
-                                                                .flatMap((typeEntry) => {
-                                                                    // 1) Remove any leading/trailing brackets
-                                                                    let cleaned = typeEntry.replace(/^\[|\]$/g, "");
-                                                                    // 2) Split by commas
-                                                                    let splitted = cleaned.split(",");
-                                                                    // 3) Clean each piece (remove prefix and underscores)
-                                                                    return splitted.map((s) =>
-                                                                        s
-                                                                            .trim()
-                                                                            .replace("VolunterrTypes.", "") // remove "VolunterrTypes."
-                                                                            .replace(/_/g, " ") // replace underscores with spaces
-                                                                    );
-                                                                })
-                                                                .join(", ")
-                                                        }
+                                                        {userProfile.volunteeringTypes
+                                                            .flatMap((typeEntry) => {
+                                                                let cleaned = typeEntry.replace(/^\[|\]$/g, "");
+                                                                let splitted = cleaned.split(",");
+                                                                return splitted.map((s) =>
+                                                                    s
+                                                                        .trim()
+                                                                        .replace("VolunterrTypes.", "")
+                                                                        .replace(/_/g, " ")
+                                                                );
+                                                            })
+                                                            .join(", ")}
                                                     </div>
                                                 </>
                                             )}
@@ -507,7 +489,7 @@ function ProfileCard() {
                                                     <div className="text-gray-700">{userProfile.skills.join(", ")}</div>
                                                 </>
                                             )}
-                                            {userProfile.about && (
+                                            {userProfile.about && userProfile.about.trim() !== "" && (
                                                 <>
                                                     <div className="font-medium text-gray-700">Volunteer Reason:</div>
                                                     <div className="text-gray-700">{userProfile.about}</div>
@@ -515,7 +497,6 @@ function ProfileCard() {
                                             )}
                                         </div>
                                     )}
-
                             </div>
                         </div>
 
@@ -523,11 +504,21 @@ function ProfileCard() {
 
                         <div className="flex flex-col space-y-4">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="dark-mode-switch" className="text-sm">Dark Mode</Label>
-                                <Switch id="dark-mode-switch" className="ml-2" checked={isDark} onCheckedChange={handleDarkModeToggle} />
+                                <Label htmlFor="dark-mode-switch" className="text-sm">
+                                    Dark Mode
+                                </Label>
+                                <Switch
+                                    id="dark-mode-switch"
+                                    className="ml-2"
+                                    checked={isDark}
+                                    onCheckedChange={handleDarkModeToggle}
+                                />
                             </div>
-                            {/* Delete Account Button – triggers alert dialog */}
-                            <Button variant="destructive" className="w-full" onClick={() => setOpenDeleteDialog(true)}>
+                            <Button
+                                variant="destructive"
+                                className="w-full"
+                                onClick={() => setOpenDeleteDialog(true)}
+                            >
                                 Delete Account
                             </Button>
                             <Button variant="outline" className="w-full" onClick={handleLogout}>

@@ -56,15 +56,15 @@ export function EditVolunteerProfileForm({
         },
     });
 
-    // Use useWatch to reactively monitor volunteeringTypes changes
+    // Watch the volunteer types for checkbox status
     const watchedVolunteerTypes = useWatch({
         control: form.control,
         name: "volunteeringTypes",
     });
 
-    // Local state for skills input
     const [skillInput, setSkillInput] = useState("");
-    const [localSkills, setLocalSkills] = useState<string[]>(userProfile.skills || []);
+    // EDIT: Initialize localSkills with deduplicated skills
+    const [localSkills, setLocalSkills] = useState<string[]>(Array.from(new Set(userProfile.skills || [])));
 
     useEffect(() => {
         form.reset({
@@ -72,7 +72,7 @@ export function EditVolunteerProfileForm({
             skills: userProfile.skills || [],
             about: userProfile.about || "",
         });
-        setLocalSkills(userProfile.skills || []);
+        setLocalSkills(Array.from(new Set(userProfile.skills || [])));
     }, [userProfile, form]);
 
     const onSubmit = (values: FormValues) => {
@@ -180,7 +180,7 @@ export function EditVolunteerProfileForm({
                         type="button"
                         onClick={() => {
                             form.reset();
-                            setLocalSkills(userProfile.skills || []);
+                            setLocalSkills(Array.from(new Set(userProfile.skills || [])));
                         }}
                     >
                         Reset
