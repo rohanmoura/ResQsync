@@ -174,69 +174,60 @@ function ProfileCard() {
                 return;
             }
 
-            // Helper function to clean a raw volunteering type string
-            const cleanVolunteerType = (raw: string): string[] => {
-                let str = raw;
-                if (str.startsWith('[') && str.endsWith(']')) {
-                    str = str.slice(1, -1);
+            // Clean and deduplicate volunteer types
+            const cleanVolunteerTypes = (types: any): string[] => {
+                if (!types) return [];
+                if (Array.isArray(types)) {
+                    return Array.from(new Set(types.map((t: string) => t.trim())));
                 }
-                return str.split(",").map((p) => p.trim());
+                return [];
             };
 
-            let cleanedVolunteerTypes: string[] = [];
-            if (Array.isArray(data.volunteeringTypes)) {
-                data.volunteeringTypes.forEach((item: string) => {
-                    if (item.includes('[') && item.includes(']')) {
-                        cleanedVolunteerTypes.push(...cleanVolunteerType(item));
-                    } else {
-                        let cleaned = item.trim();
-                        if (cleaned.startsWith("VolunterrTypes.")) {
-                            cleaned = cleaned.slice("VolunterrTypes.".length);
-                        }
-                        cleanedVolunteerTypes.push(cleaned);
-                    }
-                });
-            } else if (typeof data.volunteeringTypes === "string") {
-                cleanedVolunteerTypes = cleanVolunteerType(data.volunteeringTypes);
-            }
-            // Deduplicate volunteer types
-            cleanedVolunteerTypes = Array.from(new Set(cleanedVolunteerTypes));
+            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes) ||
+                userProfile.volunteeringTypes;
 
-            const updateVolunteerDto = {
-                volunteeringTypes:
-                    cleanedVolunteerTypes.length > 0 ? cleanedVolunteerTypes : userProfile.volunteeringTypes,
-                // Explicitly cast data.skills as string[] to ensure the type matches.
-                skills: data.skills && data.skills.length > 0
-                    ? Array.from(new Set(data.skills as string[]))
-                    : userProfile.skills,
-                about: data.about && data.about.trim() !== "" ? data.about : userProfile.about,
+            // Clean skills similarly; ensure it's a string array
+            const cleanedSkills = data.skills && data.skills.length > 0
+                ? Array.from(new Set(data.skills as string[]))
+                : userProfile.skills;
+
+            // For the about field, if blank, use the previous value
+            const cleanedAbout =
+                data.about && data.about.trim() !== ""
+                    ? data.about
+                    : userProfile.about;
+
+            // Construct payload exactly as in volunteer creation
+            const payload = {
+                volunteeringTypes: cleanedVolunteerTypes,
+                skills: cleanedSkills,
+                about: cleanedAbout,
             };
 
             await axios.post(
                 "http://localhost:8081/api/volunteers/update",
-                updateVolunteerDto,
-                {
-                    headers: { Authorization: `Bearer ${token}` },
-                }
+                payload,
+                { headers: { Authorization: `Bearer ${token}` } }
             );
 
-            // Update state immediately with the new values
+            // Update local state immediately so that the changes reflect without a reload.
             setUserProfile((prev) => ({
                 ...prev,
-                volunteeringTypes: updateVolunteerDto.volunteeringTypes,
-                skills: updateVolunteerDto.skills,
-                about: updateVolunteerDto.about,
+                volunteeringTypes: payload.volunteeringTypes,
+                skills: payload.skills,
+                about: payload.about,
             }));
 
-            toast("Volunteer profile updated", {
+            toast.success("Volunteer profile updated", {
                 description: "Your volunteer details have been updated successfully.",
             });
             setOpenVolunteerEdit(false);
         } catch (error) {
             console.error("Error updating volunteer profile:", error);
-            toast.error("Failed to update volunteer details");
+            toast.error("Failed to update volunteer details. Please try again.");
         }
     };
+
 
 
     const handleDeleteAccount = async () => {
