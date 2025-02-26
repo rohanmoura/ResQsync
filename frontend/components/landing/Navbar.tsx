@@ -3,21 +3,31 @@ import Link from "next/link";
 import { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ToogleMode";
-import { AnimatedBackground } from '@/components/core/animated-background';
+import { AnimatedBackground } from "@/components/core/animated-background";
 import { GlowEffect } from "@/components/core/glow-effect";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Bell } from "lucide-react"; // <-- Imported Bell icon
+import { Bell } from "lucide-react";
+
+// Shadcn UI imports
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
+import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
+
+// Your SSE notifications component
+import NotificationComponent from "@/app/_components/NotificationComponent";
 
 export default function Navbar() {
-    // Updated user state to include roles
     const [user, setUser] = useState<{ name: string; profilePicture?: string; roles?: string[] } | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const router = useRouter();
     const mobileMenuRef = useRef<HTMLDivElement>(null);
 
+    // Track how many NEW (unread) notifications arrived
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    // TABS for navigation
     const TABS = [
         { label: "About Us", href: "#about" },
         { label: "Solutions", href: "#solutions" },
@@ -26,7 +36,6 @@ export default function Navbar() {
         { label: "News Data", href: "/news-data" },
     ];
 
-    // Check authentication status and fetch user profile (including roles)
     useEffect(() => {
         async function checkAuthStatus() {
             const token = localStorage.getItem("jwtToken");
@@ -67,9 +76,8 @@ export default function Navbar() {
         checkAuthStatus();
     }, [router]);
 
-    // Updated validation: show Help Requests (and Notification) tab only if user has both "USER" and "VOLUNTEER" roles
+    // If user has both "USER" and "VOLUNTEER" roles, show Help Requests & notifications
     const showHelpRequests = user?.roles?.includes("USER") && user?.roles?.includes("VOLUNTEER");
-
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;
@@ -89,9 +97,31 @@ export default function Navbar() {
         };
     }, [isMenuOpen]);
 
+    /**
+     * Whenever a new notification arrives via SSE, increment unread count (max 9).
+     */
+    function handleNewNotification() {
+        setUnreadCount((prev) => {
+            if (prev < 9) return prev + 1;
+            return 9; // if 9 or more, show "9+"
+        });
+    }
+
+    /**
+     * When the user opens the popover, we consider them to have "seen" all new notifications,
+     * so we reset the unread count to 0.
+     */
+    function handlePopoverOpenChange(open: boolean) {
+        if (open) {
+            // popover is opening
+            setUnreadCount(0);
+        }
+    }
+
     return (
         <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
             <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+                {/* Logo */}
                 <Link href="/" prefetch={false} className="text-xl font-bold text-primary">
                     ResQSync
                 </Link>
@@ -118,17 +148,52 @@ export default function Navbar() {
                     </AnimatedBackground>
                 </div>
 
-                {/* Right: Notification, Mode Toggle & Auth Buttons */}
+                {/* Right side: Notifications, ModeToggle, Auth */}
                 <div className="flex items-center space-x-7">
-                    {/* Conditionally show notification icon */}
                     {showHelpRequests && (
-                        <Link href="/notifications" prefetch={false}>
-                            <button className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
-                                <Bell className="w-6 h-6" />
-                            </button>
-                        </Link>
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <Popover onOpenChange={handlePopoverOpenChange}>
+                                        <PopoverTrigger asChild>
+                                            <button className="relative p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
+                                                <Bell className="w-5 h-5" />
+                                                {/* Show badge only if unreadCount > 0 */}
+                                                {unreadCount > 0 && (
+                                                    <span
+                                                        className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center"
+                                                        style={{ fontSize: '0.65rem' }}
+                                                    >
+                                                        {unreadCount < 9 ? unreadCount : '9+'}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent
+                                            side="bottom"
+                                            align="end"
+                                            sideOffset={8}
+                                            className="w-[320px] p-0"
+                                        >
+                                            {/* 
+                        Pass the callback so SSE can tell us about new notifications.
+                        However, once the popover is open, we reset unreadCount to 0 
+                        in handlePopoverOpenChange above. 
+                      */}
+                                            <NotificationComponent onNewNotification={handleNewNotification} />
+                                        </PopoverContent>
+                                    </Popover>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                    Notifications
+                                </TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
                     )}
+
                     <ModeToggle />
+
+                    {/* Profile or Log In */}
                     <div className="relative inline-block">
                         <GlowEffect
                             colors={["#6366F1", "#818CF8", "#A78BFA", "#C7D2FE"]}
@@ -174,7 +239,10 @@ export default function Navbar() {
 
             {/* Mobile Dropdown Menu */}
             {isMenuOpen && (
-                <div ref={mobileMenuRef} className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40">
+                <div
+                    ref={mobileMenuRef}
+                    className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40"
+                >
                     {finalTabs.map((tab, index) => (
                         <Link
                             key={index}

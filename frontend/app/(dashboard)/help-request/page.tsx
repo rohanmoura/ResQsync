@@ -6,10 +6,10 @@ import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 // UI components
-import { Card } from "@/components/ui/card";
-import { CardContent } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 // Animation components
 import {
@@ -88,30 +88,10 @@ const HelpRequestPage = () => {
         <div className="container mx-auto p-4">
             {/* Animated Page Heading */}
             <div className="text-center mb-8">
-                <div className="relative inline-block">
-                    <TextRoll
-                        className="text-3xl font-bold text-primary"
-                        variants={{
-                            enter: { initial: { rotateX: 0, filter: "blur(0px)" }, animate: { rotateX: 90, filter: "blur(2px)" } },
-                            exit: { initial: { rotateX: 90, filter: "blur(2px)" }, animate: { rotateX: 0, filter: "blur(0px)" } },
-                        }}
-                    >
-                        Help Requests
-                    </TextRoll>
-                    <TextShimmer
-                        duration={1.5}
-                        spread={3}
-                        className="
-              absolute inset-0 text-3xl font-bold 
-              [--base-color:theme(colors.gray.800)] 
-              [--base-gradient-color:theme(colors.indigo.500)] 
-              dark:[--base-color:theme(colors.gray.100)] 
-              dark:[--base-gradient-color:theme(colors.indigo.400)]
-            "
-                    >
-                        Help Requests
-                    </TextShimmer>
-                </div>
+                <TextRoll className="text-3xl font-bold text-primary">Help Requests</TextRoll>
+                <TextShimmer duration={1.5} spread={3} className="absolute inset-0 text-3xl font-bold">
+                    Help Requests
+                </TextShimmer>
                 <TextEffect per="word" as="p" preset="slide" className="text-muted-foreground mt-2">
                     Manage and track your help requests in real time.
                 </TextEffect>
@@ -122,99 +102,45 @@ const HelpRequestPage = () => {
             ) : (
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {helpRequests.map((request) => (
-                        <MorphingDialog
-                            key={request.id}
-                            transition={{ type: "spring", bounce: 0.05, duration: 0.25 }}
-                        >
-                            {/* Trigger Card with Tilt Animation */}
+                        <MorphingDialog key={request.id}>
+                            {/* Trigger Card with Important Details */}
                             <Tilt rotationFactor={8} isRevese>
                                 <MorphingDialogTrigger
-                                    style={{ borderRadius: "8px" }}
-                                    className="flex flex-col max-w-[300px] overflow-hidden border border-zinc-950/10 bg-white dark:border-zinc-50/10 dark:bg-zinc-900 shadow-md transition-transform duration-300 hover:scale-[1.02] cursor-pointer"
+                                    className="flex flex-col max-w-[300px] p-6 space-y-4 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-md transition-transform duration-300 hover:scale-[1.02] cursor-pointer rounded-lg"
                                 >
-                                    <div className="p-6 space-y-4">
-                                        <h2 className="text-xl font-semibold mb-2">{request.name}</h2>
-                                        <p className="text-sm text-muted-foreground">
-                                            <span className="font-medium">Phone:</span> {request.phone}
-                                        </p>
-                                        <p className="text-sm text-muted-foreground">
-                                            <span className="font-medium">Area:</span> {request.area}
-                                        </p>
+                                    <h2 className="text-xl font-semibold">{request.name}</h2>
+                                    <p className="text-sm text-muted-foreground">
+                                        <span className="font-medium">Help Needed:</span> {request.status}
+                                    </p>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-medium">Status:</span>
+                                        <Tooltip>
+                                            <TooltipTrigger>
+                                                <div
+                                                    className={`h-3 w-3 rounded-full ${request.resolved ? "bg-green-500" : "bg-red-500"}`}
+                                                ></div>
+                                            </TooltipTrigger>
+                                            <TooltipContent>
+                                                {request.resolved ? "Resolved" : "Pending"}
+                                            </TooltipContent>
+                                        </Tooltip>
                                     </div>
                                 </MorphingDialogTrigger>
                             </Tilt>
 
                             {/* Detailed Dialog Content */}
                             <MorphingDialogContainer>
-                                <MorphingDialogContent
-                                    style={{ borderRadius: "24px" }}
-                                    className="pointer-events-auto relative flex h-auto w-full flex-col overflow-hidden border border-zinc-950/10 bg-white dark:border-zinc-50/10 dark:bg-zinc-900 sm:w-[500px]"
-                                >
-                                    <Card className="max-w-xl mx-auto my-10 shadow-xl border border-border rounded-xl overflow-hidden transform transition-transform duration-300 hover:scale-105">
-                                        {/* Gradient Header with important details */}
-                                        <div className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-4">
-                                            <h2 className="text-2xl font-bold">{request.name}</h2>
-                                            <p className="text-sm opacity-90">Request ID: {request.id}</p>
-                                        </div>
-                                        <CardContent className="p-6 bg-card space-y-2">
-                                            <p>
-                                                <span className="font-medium">Email:</span>{" "}
-                                                {request.email || "N/A"}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Phone:</span> {request.phone}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Area:</span> {request.area}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Bio:</span>{" "}
-                                                {request.bio || "N/A"}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Profile Picture:</span>{" "}
-                                                {request.profilePicture ? (
-                                                    <img
-                                                        src={request.profilePicture}
-                                                        alt={request.name}
-                                                        className="h-10 w-10 object-cover inline-block"
-                                                    />
-                                                ) : (
-                                                    "N/A"
-                                                )}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Roles:</span>{" "}
-                                                {request.roles ? request.roles.join(", ") : "N/A"}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Form Data:</span>{" "}
-                                                {request.formDto && request.formDto.length > 0
-                                                    ? JSON.stringify(request.formDto)
-                                                    : "N/A"}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Status:</span> {request.status}
-                                            </p>
-                                            <p>
-                                                <span className="font-medium">Resolved:</span>{" "}
-                                                {request.resolved ? "Yes" : "No"}
-                                            </p>
-                                            <Separator className="my-4" />
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => toggleStatus(request.id)}
-                                                className={`w-full ${request.resolved
-                                                        ? "text-green-500 border-green-500 hover:bg-green-500 hover:text-white"
-                                                        : "text-red-500 border-red-500 hover:bg-red-500 hover:text-white"
-                                                    }`}
-                                            >
-                                                {request.resolved ? "Mark as Pending" : "Mark as Resolved"}
-                                            </Button>
-                                        </CardContent>
-                                    </Card>
-                                    <MorphingDialogClose className="text-zinc-50" />
+                                <MorphingDialogContent className="relative flex flex-col w-full sm:w-[500px] border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-xl p-6">
+                                    <h2 className="text-2xl font-bold mb-4">{request.name}</h2>
+                                    <p><span className="font-medium">Email:</span> {request.email || "N/A"}</p>
+                                    <p><span className="font-medium">Phone:</span> {request.phone}</p>
+                                    <p><span className="font-medium">Area:</span> {request.area}</p>
+                                    <p><span className="font-medium">Bio:</span> {request.bio || "N/A"}</p>
+                                    <Separator className="my-4" />
+                                    <Button variant="outline" onClick={() => toggleStatus(request.id)}>
+                                        {request.resolved ? "Mark as Pending" : "Mark as Resolved"}
+                                    </Button>
+                                    <MorphingDialogClose className="absolute top-2 right-2 text-gray-500 hover:text-gray-700" />
                                 </MorphingDialogContent>
                             </MorphingDialogContainer>
                         </MorphingDialog>

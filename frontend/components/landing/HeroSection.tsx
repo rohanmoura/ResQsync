@@ -60,6 +60,7 @@ export default function HeroSection() {
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
+  const [isHelpRequestDeleting, setIsHelpRequestDeleting] = useState(false);
 
   // Helper: Check which required fields are missing
   const getMissingFields = (profile: UserProfile) => {
@@ -164,7 +165,6 @@ export default function HeroSection() {
   };
 
   // Delete Volunteer handler with loading indicator and email parameter
-  // 1. In handleDeleteVolunteer, replaced router.refresh() with window.location.reload():
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -189,11 +189,41 @@ export default function HeroSection() {
           roles: userProfile.roles.filter((role) => role !== "VOLUNTEER"),
         });
       }
-      window.location.reload(); // <-- Full page reload added here after deletion
+      window.location.reload();
     } catch (error) {
       toast.error("Failed to remove volunteer role. Please try again.");
     } finally {
       setIsVolunteerDeleting(false);
+    }
+  };
+
+  // Delete Help Request handler with loading indicator and email parameter
+  const handleDeleteHelpRequest = async () => {
+    const token = localStorage.getItem("jwtToken");
+    if (!token) {
+      toast("Authentication Required", {
+        description: "Please sign in first.",
+      });
+      return;
+    }
+    setIsHelpRequestDeleting(true);
+    try {
+      await axios.delete("http://localhost:8081/api/help-requests/delete", {
+        headers: { Authorization: `Bearer ${token}` },
+        params: { email: userProfile?.email },
+      });
+      toast.success("Help request deleted successfully!");
+      if (userProfile?.roles) {
+        setUserProfile({
+          ...userProfile,
+          roles: userProfile.roles.filter((role) => role !== "HELPREQUESTER"),
+        });
+      }
+      window.location.reload();
+    } catch (error) {
+      toast.error("Failed to remove help request. Please try again.");
+    } finally {
+      setIsHelpRequestDeleting(false);
     }
   };
 
@@ -216,7 +246,6 @@ export default function HeroSection() {
     };
     return eventSource;
   };
-
 
   const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -299,7 +328,6 @@ export default function HeroSection() {
           subscribeToNotifications(updatedProfile.email);
         }
       }
-      // Full page reload ensures that any other dependent logic is refreshed.
       window.location.reload();
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
@@ -307,8 +335,6 @@ export default function HeroSection() {
       setIsVolunteerSubmitting(false);
     }
   };
-
-
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -365,12 +391,22 @@ export default function HeroSection() {
           Seamlessly allocate resources, track crises in real time, and dispatch help at the push of a button.
         </TextEffect>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
+          {/* Updated Get Help / Delete Request Button */}
           <Button
             size="sm"
-            className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-6 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
-            onClick={handleGetHelpButtonClick}
+            className={
+              `w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 ` +
+              (isHelpRequester ? "px-8" : "px-6") +
+              ` py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse`
+            }
+            onClick={isHelpRequester ? handleDeleteHelpRequest : handleGetHelpButtonClick}
+            disabled={isHelpRequester ? isHelpRequestDeleting : false}
           >
-            Get Help
+            {isHelpRequester
+              ? isHelpRequestDeleting
+                ? "Deleting..."
+                : "Delete Request"
+              : "Get Help"}
           </Button>
           <Button
             size="sm"
