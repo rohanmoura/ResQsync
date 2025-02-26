@@ -174,43 +174,44 @@ function ProfileCard() {
                 return;
             }
 
-            // Clean and deduplicate volunteer types
+            // Clean volunteer types: remove surrounding brackets and the "VolunterrTypes." prefix if present.
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 if (Array.isArray(types)) {
-                    return Array.from(new Set(types.map((t: string) => t.trim())));
+                    return Array.from(new Set(types.map((t: string) => {
+                        let val = t.trim();
+                        if (val.startsWith("[") && val.endsWith("]")) {
+                            val = val.substring(1, val.length - 1);
+                        }
+                        if (val.startsWith("VolunterrTypes.")) {
+                            val = val.replace("VolunterrTypes.", "");
+                        }
+                        return val;
+                    })));
                 }
                 return [];
             };
 
-            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes) ||
-                userProfile.volunteeringTypes;
-
-            // Clean skills similarly; ensure it's a string array
+            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes) || userProfile.volunteeringTypes;
             const cleanedSkills = data.skills && data.skills.length > 0
                 ? Array.from(new Set(data.skills as string[]))
                 : userProfile.skills;
+            const cleanedAbout = data.about && data.about.trim() !== ""
+                ? data.about
+                : userProfile.about;
 
-            // For the about field, if blank, use the previous value
-            const cleanedAbout =
-                data.about && data.about.trim() !== ""
-                    ? data.about
-                    : userProfile.about;
-
-            // Construct payload exactly as in volunteer creation
+            // Construct payload matching the volunteer creation format
             const payload = {
                 volunteeringTypes: cleanedVolunteerTypes,
                 skills: cleanedSkills,
                 about: cleanedAbout,
             };
 
-            await axios.post(
-                "http://localhost:8081/api/volunteers/update",
-                payload,
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
+            await axios.post("http://localhost:8081/api/volunteers/update", payload, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-            // Update local state immediately so that the changes reflect without a reload.
+            // Update the local state immediately so that the UI reflects the changes
             setUserProfile((prev) => ({
                 ...prev,
                 volunteeringTypes: payload.volunteeringTypes,
@@ -222,11 +223,14 @@ function ProfileCard() {
                 description: "Your volunteer details have been updated successfully.",
             });
             setOpenVolunteerEdit(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error updating volunteer profile:", error);
+            // Log detailed error response for debugging purposes
+            console.error(error.response?.data);
             toast.error("Failed to update volunteer details. Please try again.");
         }
     };
+
 
 
 
