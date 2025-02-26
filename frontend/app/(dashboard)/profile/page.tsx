@@ -119,18 +119,23 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // Prepare update for basic details
+
             const updateDto = {
                 name: data.name ?? "",
                 phone: data.phone ?? "",
                 area: data.area ?? "",
                 bio: data.bio ?? "",
             };
+
             const formData = new FormData();
             formData.append("updateDto", JSON.stringify(updateDto));
-            if (!data.removeAvatar && data.profilePicture) {
+
+            if (data.removeAvatar) {
+                formData.append("removeAvatar", "true"); // Explicitly mark for removal
+            } else if (data.profilePicture) {
                 formData.append("profilePicture", data.profilePicture);
             }
+
             const response = await axios.post(
                 "http://localhost:8081/api/user/update-profile",
                 formData,
@@ -141,32 +146,29 @@ function ProfileCard() {
                     },
                 }
             );
+
             const updatedData = response.data;
-            setUserProfile({
-                name: updatedData.name || "Default User",
-                email: updatedData.email || "user@gmail.com",
-                roles:
-                    updatedData.roles && updatedData.roles.length > 0
-                        ? updatedData.roles
-                        : ["USER"],
-                phone: updatedData.phone || "",
-                area: updatedData.area || "",
-                bio: updatedData.bio || "",
-                profilePicture: updatedData.profilePicture || null,
-                // Preserve volunteer fields if any
-                volunteeringTypes: updatedData.volunteeringTypes || userProfile.volunteeringTypes,
-                skills: updatedData.skills || userProfile.skills,
-                about: updatedData.about || userProfile.about,
-            });
+
+            setUserProfile((prev) => ({
+                ...prev,
+                name: updatedData.name || prev.name, // Preserve name update
+                phone: updatedData.phone || prev.phone,
+                area: updatedData.area || prev.area,
+                bio: updatedData.bio || prev.bio,
+                profilePicture: data.removeAvatar ? null : updatedData.profilePicture || prev.profilePicture,
+            }));
+
             toast("Profile updated", {
                 description: "Your profile has been updated successfully.",
             });
+
             setOpenUserEdit(false);
         } catch (error) {
             console.error("Error updating profile:", error);
             toast.error("Failed to update profile");
         }
     };
+
 
     // Save volunteer-specific details
     const handleVolunteerSave = async (data: any) => {
@@ -373,11 +375,17 @@ function ProfileCard() {
 
                         {/* Profile Content */}
                         <div className="flex flex-col items-center space-y-6 mt-8">
-                            <Avatar className="w-24 h-24">
+                            <Avatar className="w-24 h-24 flex items-center justify-center bg-muted rounded-full overflow-hidden">
                                 {resolvedAvatarUrl ? (
-                                    <img src={resolvedAvatarUrl} alt="User Avatar" className="w-full h-full object-cover rounded-full" />
+                                    <img
+                                        src={resolvedAvatarUrl}
+                                        alt="User Avatar"
+                                        className="w-full h-full object-cover"
+                                    />
                                 ) : (
-                                    <div className="bg-muted text-primary text-3xl font-bold">{fallbackLetter}</div>
+                                    <div className="flex items-center justify-center w-full h-full text-3xl font-bold text-primary">
+                                        {fallbackLetter}
+                                    </div>
                                 )}
                             </Avatar>
                             <div className="flex flex-col items-center gap-2">
