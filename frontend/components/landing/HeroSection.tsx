@@ -32,7 +32,7 @@ export default function HeroSection() {
 
   // Form states for Get Help
   const [helpType, setHelpType] = useState("");
-  const [helpDescription, setHelpDescription] = useState("");
+  const [description, setHelpDescription] = useState("");
 
   // Form states for Volunteer
   const [volunteerReason, setVolunteerReason] = useState("");
@@ -191,7 +191,7 @@ export default function HeroSection() {
       toast.error("Please fill the type of help.");
       return;
     }
-    if (!helpDescription.trim()) {
+    if (!description.trim()) {
       toast.error("Please fill the description of help.");
       return;
     }
@@ -199,7 +199,7 @@ export default function HeroSection() {
       const token = localStorage.getItem("jwtToken");
       await axios.post(
         "http://localhost:8081/api/help-requests/submit",
-        { helpType, helpDescription },
+        { helpType, description },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Help request submitted successfully!");
@@ -355,7 +355,7 @@ export default function HeroSection() {
               className="border p-2 rounded"
             />
             <textarea
-              value={helpDescription}
+              value={description}
               onChange={(e) => setHelpDescription(e.target.value)}
               placeholder="Description of Help"
               className="border p-2 rounded"

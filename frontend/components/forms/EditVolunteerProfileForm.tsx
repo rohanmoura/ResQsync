@@ -1,6 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
@@ -54,6 +54,12 @@ export function EditVolunteerProfileForm({
             skills: userProfile.skills || [],
             about: userProfile.about || "",
         },
+    });
+
+    // Use useWatch to reactively monitor volunteeringTypes changes
+    const watchedVolunteerTypes = useWatch({
+        control: form.control,
+        name: "volunteeringTypes",
     });
 
     // Local state for skills input
@@ -112,7 +118,7 @@ export function EditVolunteerProfileForm({
                                 <input
                                     type="checkbox"
                                     value={type}
-                                    checked={form.getValues("volunteeringTypes")?.includes(type) || false}
+                                    checked={watchedVolunteerTypes?.includes(type) || false}
                                     onChange={(e) => {
                                         const current = form.getValues("volunteeringTypes") || [];
                                         if (e.target.checked) {
@@ -125,7 +131,6 @@ export function EditVolunteerProfileForm({
                                         }
                                     }}
                                 />
-
                                 <span className="text-sm">{type.replace(/_/g, " ")}</span>
                             </label>
                         ))}
@@ -170,10 +175,14 @@ export function EditVolunteerProfileForm({
                 />
 
                 <div className="flex justify-end space-x-4 pt-4">
-                    <Button variant="outline" type="button" onClick={() => {
-                        form.reset();
-                        setLocalSkills(userProfile.skills || []);
-                    }}>
+                    <Button
+                        variant="outline"
+                        type="button"
+                        onClick={() => {
+                            form.reset();
+                            setLocalSkills(userProfile.skills || []);
+                        }}
+                    >
                         Reset
                     </Button>
                     <Button type="submit">Save</Button>
