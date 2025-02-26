@@ -1,6 +1,8 @@
 package com.reqsync.Reqsync.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import com.reqsync.Reqsync.CustomException.MessageNotSended;
 import com.reqsync.Reqsync.Entity.HelpRequest;
+import com.reqsync.Reqsync.Entity.RequestHelperIssue;
 
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -120,4 +123,59 @@ public class EmailService {
             e.printStackTrace();
         }
     }
+
+    public void sendRequestIssueReportedEmail(RequestHelperIssue hRequestHelperIssue, String emailTo,
+            String requestorName, String helpType,
+            LocalDateTime reportedTime, String issueDetails,
+            String resolvedBy) {
+
+        String subject = "Help Request Issue Reported - Action Needed ❗";
+
+        String formattedTime = reportedTime.format(DateTimeFormatter.ofPattern("dd MMM yyyy, hh:mm a"));
+        String message = String.format(
+                """
+                        <html>
+                        <body>
+                            <p>Dear Volunteers,</p>
+                            <p>The requestor, <strong>%s</strong>, has reported an issue regarding their help request for <strong>%s</strong>.
+                            They have indicated that the problem has not been fully resolved.</p>
+
+                            <h4>Issue Details:</h4>
+                            <ul>
+                                <li><b>Help Type:</b> %s</li>
+                                <li><b>Reported On:</b> %s</li>
+                                <li><b>Requestor's Concern:</b> %s</li>
+                            </ul>
+
+                            <h4>Resolution Attempt:</h4>
+                            <ul>
+                                <li><b>Resolved By:</b> %s</li>
+                            </ul>
+
+                            <p>We kindly ask you to revisit this request and assist further if possible.</p>
+
+                            <p>Thank you for your continued support in helping those in need.</p>
+
+                            <p>Best regards,</p>
+                            <p><strong>The ReqSync Team</strong></p>
+                        </body>
+                        </html>
+                        """,
+                requestorName, helpType, helpType, formattedTime, issueDetails, resolvedBy);
+
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setTo(emailTo);
+            helper.setFrom(hRequestHelperIssue.getHelpIssuerEmail());
+            helper.setSubject(subject);
+            helper.setText(message, true); // true for HTML content
+
+            mailSender.send(mimeMessage);
+        } catch (MessagingException e) {
+            e.printStackTrace();
+        }
+    }
+
 }

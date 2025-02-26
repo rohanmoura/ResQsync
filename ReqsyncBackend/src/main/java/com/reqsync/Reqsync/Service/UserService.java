@@ -19,17 +19,24 @@ import com.reqsync.Reqsync.Config.EncoderConfig;
 import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.ImageNotSaved;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
+import com.reqsync.Reqsync.Dto.HelpRequestFormDto;
+import com.reqsync.Reqsync.Dto.HelpRequestInfoDto;
+import com.reqsync.Reqsync.Dto.HelpRequestorProfileDto;
 import com.reqsync.Reqsync.Dto.UserDto;
 
 import com.reqsync.Reqsync.Dto.UserProfileDto;
 import com.reqsync.Reqsync.Dto.UserUpdateDto;
+import com.reqsync.Reqsync.Dto.VolunteerProfileDto;
+import com.reqsync.Reqsync.Entity.HelpRequest;
+import com.reqsync.Reqsync.Entity.RequestStatus;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
-
+import com.reqsync.Reqsync.Entity.Volunteer;
 import com.reqsync.Reqsync.Mapper.HelpRequestMapper;
 import com.reqsync.Reqsync.Repository.HelpRequestRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
+import com.reqsync.Reqsync.Repository.VolunteerRepository;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -51,6 +58,9 @@ public class UserService {
 
     @Autowired
     private HelpRequestMapper helpRequestMapper;
+
+    @Autowired
+    private VolunteerRepository volunteerRepository;
 
     @Transactional
     public User addDaoUser(User user) {
@@ -91,7 +101,7 @@ public class UserService {
         return user;
     }
 
-    public UserProfileDto getUserInfo() {
+    public Object getUserInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String email = ((UserDetails) authentication.getPrincipal()).getUsername();
 
@@ -113,14 +123,61 @@ public class UserService {
             // Fetch all help requests
             helpRequests = helpRequestRepository.findAll()
                     .stream()
-                    .map(helpRequestMapper::toVolunterrDto)
+                    .map(helpRequestMapper::toVolunteerDto)
                     .collect(Collectors.toList());
+
+            Volunteer volunteer = volunteerRepository.findByUser(user)
+                    .orElseThrow(() -> new IllegalArgumentException("No Volunteer Found"));
+
+            return VolunteerProfileDto.builder()
+                    .email(user.getEmail())
+                    .roles(roles)
+                    .name(user.getName())
+                    .phone(user.getPhone())
+                    .area(user.getArea())
+                    .bio(user.getBio())
+                    .helpRequests(helpRequests)
+                    .volunteeringTypes(List.of(volunteer.getVolunteeringTypes().toString()))
+                    .skills(volunteer.getSkills())
+                    .profilePicture(
+                            user.getProfilePicture() != null
+                                    ? Base64.getEncoder().encodeToString(user.getProfilePicture())
+                                    : null)
+                    .build();
+
         } else if (isHelpRequester) {
             // Fetch only the user's help requests
             helpRequests = user.getHelpRequests()
                     .stream()
                     .map(helpRequestMapper::toRequestDto)
                     .collect(Collectors.toList());
+
+            List<HelpRequest> helpRequest = helpRequestRepository.findAllByUser(user);
+            if (helpRequest.isEmpty()) {
+                throw new IllegalArgumentException("No Help Find Out");
+            }
+
+            List<HelpRequestInfoDto> helpRequestInfoList = helpRequest.stream()
+                    .map(req -> HelpRequestInfoDto.builder()
+                            .id(req.getId())
+                            .resolved(req.isResolved()) // or req.getResolved() if that's your getter
+                            .status(req.getStatus())
+                            .build())
+                    .collect(Collectors.toList());
+
+            return HelpRequestorProfileDto.builder()
+                    .email(user.getEmail())
+                    .roles(roles)
+                    .name(user.getName())
+                    .phone(user.getPhone())
+                    .area(user.getArea())
+                    .bio(user.getBio())
+                    .helpRequestsList(helpRequestInfoList)
+                    .profilePicture(
+                            user.getProfilePicture() != null
+                                    ? Base64.getEncoder().encodeToString(user.getProfilePicture())
+                                    : null)
+                    .build();
         }
 
         return UserProfileDto.builder()
@@ -133,7 +190,7 @@ public class UserService {
                 .profilePicture(
                         user.getProfilePicture() != null ? Base64.getEncoder().encodeToString(user.getProfilePicture())
                                 : null)
-                .helpRequests(helpRequests)
+
                 .build();
     }
 
@@ -165,6 +222,11 @@ public class UserService {
             } catch (IOException e) {
                 throw new ImageNotSaved("The Image is not saved because of this error: " + e.getMessage());
             }
+        }
+
+        if (profilePicture == null || profilePicture.isEmpty()) {
+            user.setProfilePicture(null);
+
         }
         userRepository.save(user);
 

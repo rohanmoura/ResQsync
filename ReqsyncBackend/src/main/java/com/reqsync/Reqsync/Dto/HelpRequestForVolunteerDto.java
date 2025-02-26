@@ -1,5 +1,7 @@
 package com.reqsync.Reqsync.Dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Null;
 import jakarta.validation.constraints.Size;
@@ -16,6 +18,7 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class HelpRequestForVolunteerDto {
 
     @Null(message = "ID should not be provided.") // Allows ID to be null

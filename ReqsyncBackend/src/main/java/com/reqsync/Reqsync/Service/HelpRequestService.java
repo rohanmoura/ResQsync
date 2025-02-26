@@ -4,13 +4,22 @@ import com.reqsync.Reqsync.CustomException.AlreadyUsedEmail;
 import com.reqsync.Reqsync.CustomException.NoIdexist;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.Dto.HelpRequestForRequestorDto;
+import com.reqsync.Reqsync.Dto.HelpRequestFormDto;
+import com.reqsync.Reqsync.Dto.NotificationDto;
+import com.reqsync.Reqsync.Dto.RequestHelperIssueDto;
 import com.reqsync.Reqsync.Entity.HelpRequest;
+import com.reqsync.Reqsync.Entity.RequestHelperIssue;
+import com.reqsync.Reqsync.Entity.RequestStatus;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
+import com.reqsync.Reqsync.Entity.Volunteer;
 import com.reqsync.Reqsync.Events.HelpRequestCreatedEvent;
 import com.reqsync.Reqsync.Repository.HelpRequestRepository;
+import com.reqsync.Reqsync.Repository.HelpRequestorIssueRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
+import com.reqsync.Reqsync.Repository.VolunteerRepository;
+import com.reqsync.Reqsync.Repository.VolunteerResolutionRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,10 +44,22 @@ public class HelpRequestService {
     private RoleRepository roleRepository;
 
     @Autowired
+    private VolunteerResolutionRepository volunteerResolutionRepository;
+
+    @Autowired
+    private VolunteerRepository volunteerRepository;
+
+    @Autowired
+    private HelpRequestorIssueRepository helpRequestorIssueRepository;
+
+    @Autowired
     private ApplicationEventPublisher eventPublisher;
 
+    @Autowired
+    private NotificationService notificationService;
+
     @Transactional
-    public void addHelpRequest(HelpRequestForRequestorDto helpRequestDao) {
+    public void addHelpRequest(HelpRequestFormDto helpRequestFormDto) {
         // Check if the current user is authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -69,8 +90,7 @@ public class HelpRequestService {
             userRepository.save(user); // Save the updated user with the new role
         }
 
-        if (user.getName() == null || user.getPhone() == null || user.getArea() == null
-                || user.getProfilePicture() == null) {
+        if (user.getName() == null || user.getPhone() == null || user.getArea() == null) {
             throw new IllegalArgumentException("User details are incomplete. Please update your profile first.");
 
         }
@@ -81,8 +101,8 @@ public class HelpRequestService {
                 .name(user.getName())
                 .phone(user.getPhone())
                 .area(user.getArea())
-                .helpType(helpRequestDao.getHelpType())
-                .message(helpRequestDao.getMessage())
+                .helpType(helpRequestFormDto.getHelpType())
+                .message(helpRequestFormDto.getDescription())
                 .build();
 
         // Save the help request to the database
@@ -120,5 +140,28 @@ public class HelpRequestService {
         }
         throw new NoIdexist("No id exist with this id");
 
+    }
+
+    public boolean confirmRequestStatusByRequestor(Long id, boolean isResolved,
+            RequestHelperIssueDto hRequestHelperIssueDto) {
+        HelpRequest helpRequest = helpRequestRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Help request not found with id: " + id));
+
+        Long volunteerId = volunteerResolutionRepository.findByHelpRequestId(id);
+
+        Volunteer volunteer = volunteerRepository.findById(volunteerId)
+                .orElseThrow(() -> new IllegalArgumentException("Volunteer not found with id: " + volunteerId));
+
+        if (isResolved) {
+            deleteHelpRequest(id);
+        }
+        helpRequest.setStatus(RequestStatus.PENDING);
+        helpRequestRepository.save(helpRequest);
+        RequestHelperIssue requestHelperIssue = new RequestHelperIssue();
+        requestHelperIssue.setDescription(hRequestHelperIssueDto.getDescription());
+        requestHelperIssue.setVolunteerEmail(volunteer.getUser().getEmail());
+        helpRequestorIssueRepository.save(requestHelperIssue);
+        eventPublisher.publishEvent(new HelpRequestCreatedEvent(this, helpRequest));
+        return true;
     }
 }
