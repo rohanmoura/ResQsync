@@ -8,6 +8,7 @@ import { GlowEffect } from "@/components/core/glow-effect";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import axios from "axios";
+import { Bell } from "lucide-react"; // <-- Imported Bell icon
 
 export default function Navbar() {
     // Updated user state to include roles
@@ -66,13 +67,12 @@ export default function Navbar() {
         checkAuthStatus();
     }, [router]);
 
-    // Updated validation: show tab only if user has both "USER" and "VOLUNTEER" roles
+    // Updated validation: show Help Requests (and Notification) tab only if user has both "USER" and "VOLUNTEER" roles
     const showHelpRequests = user?.roles?.includes("USER") && user?.roles?.includes("VOLUNTEER");
 
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;
-
 
     // Close mobile menu when clicking outside
     useEffect(() => {
@@ -118,8 +118,16 @@ export default function Navbar() {
                     </AnimatedBackground>
                 </div>
 
-                {/* Right: Mode Toggle & Auth Buttons */}
+                {/* Right: Notification, Mode Toggle & Auth Buttons */}
                 <div className="flex items-center space-x-7">
+                    {/* Conditionally show notification icon */}
+                    {showHelpRequests && (
+                        <Link href="/notifications" prefetch={false}>
+                            <button className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
+                                <Bell className="w-6 h-6" />
+                            </button>
+                        </Link>
+                    )}
                     <ModeToggle />
                     <div className="relative inline-block">
                         <GlowEffect
