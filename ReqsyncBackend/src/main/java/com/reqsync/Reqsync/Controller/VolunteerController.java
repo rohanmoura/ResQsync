@@ -59,13 +59,19 @@ public class VolunteerController {
             if (updated) {
                 return ResponseEntity.ok("Volunteer profile updated successfully.");
             } else {
-                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                        .body("Failed to update volunteer profile.");
+                // Return a response indicating that no changes were made.
+                return ResponseEntity.status(HttpStatus.NOT_MODIFIED)
+                        .body("No changes made to volunteer profile.");
             }
         } catch (WrongAuthenticationCredentials ex) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(ex.getMessage());
         } catch (IllegalArgumentException ex) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(ex.getMessage());
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("An unexpected error occurred.");
         }
     }
 

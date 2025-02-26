@@ -219,6 +219,27 @@ function ProfileCard() {
             };
 
             console.log("The payload is: ", payload);
+// Insert this right after `console.log("The payload is: ", payload);`
+if (
+    (
+      JSON.stringify(userProfile.volunteeringTypes) === JSON.stringify(cleanedVolunteerTypes) &&
+      JSON.stringify(userProfile.skills) === JSON.stringify(cleanedSkills) &&
+      userProfile.about === cleanedAbout
+    ) || 
+    (
+      cleanedVolunteerTypes.length === 0 &&
+      cleanedSkills.length === 0 &&
+      cleanedAbout.trim() === ""
+    )
+) {
+    toast.success("Volunteer profile updated", {
+        description: "Your volunteer details have been updated successfully.",
+    });
+    setOpenVolunteerEdit(false);
+    return;
+}
+
+
 
             await axios.post("http://localhost:8081/api/volunteers/update", payload, {
                 headers: {

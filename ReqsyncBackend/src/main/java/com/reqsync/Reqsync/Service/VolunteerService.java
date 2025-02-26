@@ -17,17 +17,12 @@ import com.reqsync.Reqsync.CustomException.VolunteerAccessed;
 import com.reqsync.Reqsync.CustomException.WrongAuthenticationCredentials;
 import com.reqsync.Reqsync.Dto.VolunteerFormDto;
 import com.reqsync.Reqsync.Dto.VolunterrTypes;
-import com.reqsync.Reqsync.Entity.HelpRequest;
-import com.reqsync.Reqsync.Entity.RequestStatus;
 import com.reqsync.Reqsync.Entity.Roles;
 import com.reqsync.Reqsync.Entity.User;
 import com.reqsync.Reqsync.Entity.Volunteer;
-import com.reqsync.Reqsync.Entity.VolunteerResolution;
-import com.reqsync.Reqsync.Repository.HelpRequestRepository;
 import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
 import com.reqsync.Reqsync.Repository.VolunteerRepository;
-import com.reqsync.Reqsync.Repository.VolunteerResolutionRepository;
 import com.reqsync.Reqsync.Repository.VolunteerTypeRepository;
 
 @Service
@@ -40,13 +35,7 @@ public class VolunteerService {
     private UserRepository userRepository;
 
     @Autowired
-    private HelpRequestRepository helpRequestRepository;
-
-    @Autowired
     private RoleRepository roleRepository;
-
-    @Autowired
-    private VolunteerResolutionRepository volunteerResolutionRepository;
 
     @Autowired
     private VolunteerTypeRepository volunteerTypeRepository;
