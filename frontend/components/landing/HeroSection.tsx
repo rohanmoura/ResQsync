@@ -197,6 +197,26 @@ export default function HeroSection() {
     }
   };
 
+  // Helper function to immediately subscribe to notifications via SSE.
+  const subscribeToNotifications = (email: string) => {
+    const sseUrl = `http://localhost:8081/api/notifications/subscribe?email=${encodeURIComponent(email)}`;
+    const eventSource = new EventSource(sseUrl);
+    eventSource.onmessage = (event) => {
+      try {
+        const notification = JSON.parse(event.data);
+        console.log("New notification received:", notification);
+        // Optionally update your notifications state or context here
+      } catch (error) {
+        console.error("Error parsing notification data:", error);
+      }
+    };
+    eventSource.onerror = (error) => {
+      console.error("EventSource error:", error);
+      eventSource.close();
+    };
+    return eventSource;
+  };
+
 
   const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -227,7 +247,7 @@ export default function HeroSection() {
     }
   };
 
-  // 2. In handleVolunteerSubmit, replaced router.refresh() with window.location.reload():
+  // Volunteer submission handler: after successful creation, immediately subscribe to notifications if roles include "VOLUNTEER", then reload.
   const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (volunteerTypes.length === 0) {
@@ -262,14 +282,25 @@ export default function HeroSection() {
       setVolunteerReason("");
       localStorage.setItem("isVolunteer", "true");
       if (userProfile) {
-        setUserProfile({
+        // Create an updated profile with the "VOLUNTEER" role added if not already present.
+        const updatedProfile = {
           ...userProfile,
           roles: userProfile.roles.includes("VOLUNTEER")
             ? userProfile.roles
             : [...userProfile.roles, "VOLUNTEER"],
-        });
+        };
+        setUserProfile(updatedProfile);
+        // Immediately subscribe to notifications if the updated profile has both "USER" and "VOLUNTEER" roles.
+        if (
+          updatedProfile.email &&
+          updatedProfile.roles.includes("VOLUNTEER") &&
+          updatedProfile.roles.includes("USER")
+        ) {
+          subscribeToNotifications(updatedProfile.email);
+        }
       }
-      window.location.reload(); // <-- Full page reload added here after creation
+      // Full page reload ensures that any other dependent logic is refreshed.
+      window.location.reload();
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
     } finally {
