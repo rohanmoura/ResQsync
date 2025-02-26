@@ -178,27 +178,28 @@ function ProfileCard() {
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 if (Array.isArray(types)) {
-                    return Array.from(new Set(types.map((t: string) => {
-                        let val = t.trim();
-                        if (val.startsWith("[") && val.endsWith("]")) {
-                            val = val.substring(1, val.length - 1);
-                        }
-                        if (val.startsWith("VolunterrTypes.")) {
-                            val = val.replace("VolunterrTypes.", "");
-                        }
-                        return val;
-                    })));
+                    return Array.from(
+                        new Set(
+                            types.map((t: string) => {
+                                let val = t.trim();
+                                if (val.startsWith("[") && val.endsWith("]")) {
+                                    val = val.substring(1, val.length - 1);
+                                }
+                                if (val.startsWith("VolunterrTypes.")) {
+                                    val = val.replace("VolunterrTypes.", "");
+                                }
+                                return val;
+                            })
+                        )
+                    );
                 }
                 return [];
             };
 
-            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes) || userProfile.volunteeringTypes;
-            const cleanedSkills = data.skills && data.skills.length > 0
-                ? Array.from(new Set(data.skills as string[]))
-                : userProfile.skills;
-            const cleanedAbout = data.about && data.about.trim() !== ""
-                ? data.about
-                : userProfile.about;
+            // Always use the data provided (even if blank) rather than falling back to userProfile
+            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes);
+            const cleanedSkills = data.skills ? Array.from(new Set(data.skills as string[])) : [];
+            const cleanedAbout = data.about !== undefined ? data.about : "";
 
             // Construct payload matching the volunteer creation format
             const payload = {
@@ -208,10 +209,10 @@ function ProfileCard() {
             };
 
             await axios.post("http://localhost:8081/api/volunteers/update", payload, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
             });
 
-            // Update the local state immediately so that the UI reflects the changes
+            // Update local state with the new (even blank) values
             setUserProfile((prev) => ({
                 ...prev,
                 volunteeringTypes: payload.volunteeringTypes,
@@ -225,7 +226,6 @@ function ProfileCard() {
             setOpenVolunteerEdit(false);
         } catch (error: any) {
             console.error("Error updating volunteer profile:", error);
-            // Log detailed error response for debugging purposes
             console.error(error.response?.data);
             toast.error("Failed to update volunteer details. Please try again.");
         }
