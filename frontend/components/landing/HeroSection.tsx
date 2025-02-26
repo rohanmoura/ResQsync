@@ -164,7 +164,7 @@ export default function HeroSection() {
   };
 
   // Delete Volunteer handler with loading indicator and email parameter
-  // 1. In handleDeleteVolunteer, added router.refresh() after successful deletion:
+  // 1. In handleDeleteVolunteer, replaced router.refresh() with window.location.reload():
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -189,7 +189,7 @@ export default function HeroSection() {
           roles: userProfile.roles.filter((role) => role !== "VOLUNTEER"),
         });
       }
-      router.refresh(); // <-- Added page refresh here after deletion
+      window.location.reload(); // <-- Full page reload added here after deletion
     } catch (error) {
       toast.error("Failed to remove volunteer role. Please try again.");
     } finally {
@@ -227,7 +227,7 @@ export default function HeroSection() {
     }
   };
 
-  // 2. In handleVolunteerSubmit, added router.refresh() after a successful volunteer creation:
+  // 2. In handleVolunteerSubmit, replaced router.refresh() with window.location.reload():
   const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (volunteerTypes.length === 0) {
@@ -269,13 +269,14 @@ export default function HeroSection() {
             : [...userProfile.roles, "VOLUNTEER"],
         });
       }
-      router.refresh(); // <-- Added page refresh here after creation
+      window.location.reload(); // <-- Full page reload added here after creation
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
     } finally {
       setIsVolunteerSubmitting(false);
     }
   };
+
 
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
