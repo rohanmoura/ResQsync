@@ -178,8 +178,13 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
+            // Ensure volunteeringTypes is an array of clean strings
+            const volunteeringTypes = Array.isArray(data.volunteeringTypes)
+                ? data.volunteeringTypes.map((type: string) => type.trim())
+                : data.volunteeringTypes.split(",").map((s: string) => s.trim());
+
             const updateVolunteerDto = {
-                volunteeringTypes: data.volunteeringTypes || [],
+                volunteeringTypes: volunteeringTypes,
                 skills: data.skills || [],
                 about: data.about || "",
             };
@@ -207,6 +212,7 @@ function ProfileCard() {
             toast.error("Failed to update volunteer details");
         }
     };
+
 
     // Delete account with alert dialog confirmation
     const handleDeleteAccount = async () => {

@@ -50,6 +50,8 @@ export default function HeroSection() {
   const [volunteerSkillInput, setVolunteerSkillInput] = useState("");
   const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
+  const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
+
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
 
   // Helper: Check which required fields are missing
@@ -195,6 +197,7 @@ export default function HeroSection() {
       toast.error("Please fill the description of help.");
       return;
     }
+    setIsGetHelpSubmitting(true);
     try {
       const token = localStorage.getItem("jwtToken");
       await axios.post(
@@ -208,6 +211,8 @@ export default function HeroSection() {
       setHelpDescription("");
     } catch (error) {
       toast.error("Failed to submit help request. Please try again.");
+    } finally {
+      setIsGetHelpSubmitting(false);
     }
   };
 
@@ -360,7 +365,9 @@ export default function HeroSection() {
               placeholder="Description of Help"
               className="border p-2 rounded"
             ></textarea>
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={isGetHelpSubmitting}>
+              {isGetHelpSubmitting ? "Submitting" : "Submit"}
+            </Button>
           </form>
           <DialogClose />
         </DialogContent>
