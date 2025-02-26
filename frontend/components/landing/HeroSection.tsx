@@ -1,10 +1,18 @@
+"use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { toast } from "sonner"; // assuming you're using 'sonner' for toast notifications
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogClose,
+} from "@/components/ui/dialog";
 import { TextEffect } from "@/components/core/text-effect";
 import { TextLoop } from "@/components/core/text-loop";
 
@@ -51,7 +59,6 @@ export default function HeroSection() {
   const [volunteerSkills, setVolunteerSkills] = useState<string[]>([]);
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
-
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
 
   // Helper: Check which required fields are missing
@@ -114,10 +121,11 @@ export default function HeroSection() {
       );
       return;
     }
-    // New validation:
     // If user is both a volunteer and a regular user, block help request until volunteer role is removed.
     if (userProfile.roles.includes("VOLUNTEER")) {
-      toast.error("You are currently a volunteer so you cannot request help. Please remove your volunteer role to request help.");
+      toast.error(
+        "You are currently a volunteer so you cannot request help. Please remove your volunteer role to request help."
+      );
       return;
     }
     setGetHelpDialogOpen(true);
@@ -145,10 +153,11 @@ export default function HeroSection() {
       );
       return;
     }
-    // New validation:
     // If user's role includes HELPREQUESTER, block volunteering until that role is removed.
     if (userProfile.roles.includes("HELPREQUESTER")) {
-      toast.error("You are currently a help requester so you cannot volunteer. Please remove your help requester role to volunteer.");
+      toast.error(
+        "You are currently a help requester so you cannot volunteer. Please remove your help requester role to volunteer."
+      );
       return;
     }
     setVolunteerDialogOpen(true);
@@ -248,11 +257,14 @@ export default function HeroSection() {
       setVolunteerSkills([]);
       setVolunteerSkillInput("");
       setVolunteerReason("");
-      // Update profile to reflect volunteer role (set to "VOLUNTEER")
+      // Immediately update localStorage flag and userProfile to include "VOLUNTEER"
+      localStorage.setItem("isVolunteer", "true");
       if (userProfile) {
         setUserProfile({
           ...userProfile,
-          roles: userProfile.roles ? [...userProfile.roles, "VOLUNTEER"] : ["VOLUNTEER"],
+          roles: userProfile.roles.includes("VOLUNTEER")
+            ? userProfile.roles
+            : [...userProfile.roles, "VOLUNTEER"],
         });
       }
     } catch (error) {

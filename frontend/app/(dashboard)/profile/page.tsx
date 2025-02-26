@@ -178,17 +178,47 @@ function ProfileCard() {
                 router.push("/");
                 return;
             }
-            // Ensure volunteeringTypes is an array of clean strings
-            const volunteeringTypes = Array.isArray(data.volunteeringTypes)
-                ? data.volunteeringTypes.map((type: string) => type.trim())
-                : data.volunteeringTypes.split(",").map((s: string) => s.trim());
+
+            // Helper function to clean a raw volunteering type string
+            const cleanVolunteerType = (raw: string): string[] => {
+                let str = raw;
+                // Remove surrounding brackets if present
+                if (str.startsWith('[') && str.endsWith(']')) {
+                    str = str.slice(1, -1);
+                }
+                // Split by comma and clean each part
+                return str.split(",").map((p) => {
+                    let cleaned = p.trim();
+                    if (cleaned.startsWith("VolunterrTypes.")) {
+                        cleaned = cleaned.slice("VolunterrTypes.".length);
+                    }
+                    return cleaned;
+                });
+            };
+
+            let cleanedVolunteerTypes: string[] = [];
+            if (Array.isArray(data.volunteeringTypes)) {
+                data.volunteeringTypes.forEach((item: string) => {
+                    if (item.includes('[') && item.includes(']')) {
+                        cleanedVolunteerTypes.push(...cleanVolunteerType(item));
+                    } else {
+                        let cleaned = item.trim();
+                        if (cleaned.startsWith("VolunterrTypes.")) {
+                            cleaned = cleaned.slice("VolunterrTypes.".length);
+                        }
+                        cleanedVolunteerTypes.push(cleaned);
+                    }
+                });
+            } else if (typeof data.volunteeringTypes === "string") {
+                cleanedVolunteerTypes = cleanVolunteerType(data.volunteeringTypes);
+            }
 
             const updateVolunteerDto = {
-                volunteeringTypes: volunteeringTypes,
+                volunteeringTypes: cleanedVolunteerTypes,
                 skills: data.skills || [],
                 about: data.about || "",
             };
-            // Use dedicated endpoint for volunteer details.
+
             const response = await axios.post(
                 "http://localhost:8081/api/volunteers/update",
                 updateVolunteerDto,
@@ -212,6 +242,7 @@ function ProfileCard() {
             toast.error("Failed to update volunteer details");
         }
     };
+
 
 
     // Delete account with alert dialog confirmation

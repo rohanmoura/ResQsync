@@ -71,7 +71,7 @@ export default function Navbar() {
         user &&
         user.roles &&
         user.roles.includes("USER") &&
-        (user.roles.includes("VOLUNTEER") || localStorage.getItem("isVolunteer") === "true");
+        (user.roles.includes("VOLUNTEER") || localStorage.getItem("isVolunteer") === "true")
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;
