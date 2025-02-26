@@ -1,9 +1,10 @@
 package com.reqsync.Reqsync.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,9 +15,8 @@ import com.reqsync.Reqsync.CustomException.HelpRequestorAccessed;
 import com.reqsync.Reqsync.CustomException.UsersNotFound;
 import com.reqsync.Reqsync.CustomException.VolunteerAccessed;
 import com.reqsync.Reqsync.CustomException.WrongAuthenticationCredentials;
-import com.reqsync.Reqsync.Dto.NotificationDto;
-import com.reqsync.Reqsync.Dto.VolunteerDto;
 import com.reqsync.Reqsync.Dto.VolunteerFormDto;
+import com.reqsync.Reqsync.Dto.VolunterrTypes;
 import com.reqsync.Reqsync.Entity.HelpRequest;
 import com.reqsync.Reqsync.Entity.RequestStatus;
 import com.reqsync.Reqsync.Entity.Roles;
@@ -28,7 +28,6 @@ import com.reqsync.Reqsync.Repository.RoleRepository;
 import com.reqsync.Reqsync.Repository.UserRepository;
 import com.reqsync.Reqsync.Repository.VolunteerRepository;
 import com.reqsync.Reqsync.Repository.VolunteerResolutionRepository;
-import com.reqsync.Reqsync.Repository.VolunteerSkillsRepository;
 import com.reqsync.Reqsync.Repository.VolunteerTypeRepository;
 
 @Service
@@ -53,9 +52,6 @@ public class VolunteerService {
     private VolunteerTypeRepository volunteerTypeRepository;
 
     @Autowired
-    private VolunteerSkillsRepository volunteerSkillsRepository;
-
-    @Autowired
     private EmailService emailService;
 
     /**
@@ -64,6 +60,18 @@ public class VolunteerService {
 
     @Transactional
     public void addVolunteer(VolunteerFormDto volunteerProfileDto) {
+
+        if (volunteerProfileDto.getVolunteeringTypes() == null
+                || volunteerProfileDto.getVolunteeringTypes().isEmpty()) {
+            throw new IllegalArgumentException("At least one volunteering type is required.");
+        }
+        if (volunteerProfileDto.getSkills() == null || volunteerProfileDto.getSkills().isEmpty()) {
+            throw new IllegalArgumentException("At least one skill is required.");
+        }
+        if (volunteerProfileDto.getAbout() == null || volunteerProfileDto.getAbout().trim().isEmpty()) {
+            throw new IllegalArgumentException("About section cannot be null or blank.");
+        }
+
         // Check if the current user is authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -105,6 +113,7 @@ public class VolunteerService {
         volunteer.setUser(user);
         volunteer.setPhone(user.getPhone());
         volunteer.setArea(user.getArea());
+
         volunteer.setVolunteeringTypes(volunteerProfileDto.getVolunteeringTypes());
         volunteer.setSkills(volunteerProfileDto.getSkills());
         volunteer.setAbout(volunteerProfileDto.getAbout());
@@ -143,29 +152,6 @@ public class VolunteerService {
     }
 
     @Transactional
-    public boolean confirmRequestStatus(Long id, Long vId) {
-
-        HelpRequest helpRequest = helpRequestRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Help request not found with id: " + id));
-
-        Volunteer volunteer = volunteerRepository.findById(vId)
-                .orElseThrow(() -> new IllegalArgumentException("Volunteer not found with id: " + vId));
-        if (helpRequest.getStatus() != RequestStatus.PENDING) {
-            throw new IllegalArgumentException("Help request is not pending");
-        }
-        helpRequest.setStatus(RequestStatus.RESOLVED);
-        VolunteerResolution volunteerResolution = new VolunteerResolution();
-        volunteerResolution.setVolunteerId(vId);
-        volunteerResolution.setRequestId(id);
-        helpRequestRepository.save(helpRequest);
-        volunteerResolutionRepository.save(volunteerResolution);
-        emailService.sendRequestFulfilledEmail(helpRequest.getUser().getEmail(), helpRequest.getUser().getName(),
-                volunteer.getUser().getName(), helpRequest.getHelpType(), volunteerResolution.getResolvedAt());
-
-        return true;
-    }
-
-    @Transactional
     public boolean updateVolunteer(VolunteerFormDto volunteerFormDto) {
         // Validate authentication
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -184,26 +170,45 @@ public class VolunteerService {
         Volunteer volunteer = volunteerRepository.findByUser(user)
                 .orElseThrow(() -> new IllegalArgumentException("No Volunteer found for user: " + email));
 
-        // Update volunteering types if provided
+        boolean changed = false;
+
+        // Update volunteering types only if the field is explicitly provided and not
+        // empty
         if (volunteerFormDto.getVolunteeringTypes() != null && !volunteerFormDto.getVolunteeringTypes().isEmpty()) {
-            // Merge the new volunteering types
-            volunteer.getVolunteeringTypes().addAll(volunteerFormDto.getVolunteeringTypes());
+            List<VolunterrTypes> currentTypes = volunteer.getVolunteeringTypes() == null
+                    ? new ArrayList<>()
+                    : volunteer.getVolunteeringTypes();
+            if (!new HashSet<>(currentTypes).equals(new HashSet<>(volunteerFormDto.getVolunteeringTypes()))) {
+                volunteer.setVolunteeringTypes(new ArrayList<>(volunteerFormDto.getVolunteeringTypes()));
+                changed = true;
+            }
         }
 
-        // Update skills if provided
+        // Update skills only if the field is explicitly provided and not empty
         if (volunteerFormDto.getSkills() != null && !volunteerFormDto.getSkills().isEmpty()) {
-            volunteer.getSkills().addAll(volunteerFormDto.getSkills());
+            List<String> currentSkills = volunteer.getSkills() == null
+                    ? new ArrayList<>()
+                    : volunteer.getSkills();
+            if (!new HashSet<>(currentSkills).equals(new HashSet<>(volunteerFormDto.getSkills()))) {
+                volunteer.setSkills(new ArrayList<>(volunteerFormDto.getSkills()));
+                changed = true;
+            }
         }
 
-        // Update the "about" field if provided
+        // Update the "about" field only if it is explicitly provided and not empty
         if (volunteerFormDto.getAbout() != null && !volunteerFormDto.getAbout().trim().isEmpty()) {
-            volunteer.setAbout(volunteerFormDto.getAbout());
+            if (volunteer.getAbout() == null || !volunteer.getAbout().equals(volunteerFormDto.getAbout())) {
+                volunteer.setAbout(volunteerFormDto.getAbout());
+                changed = true;
+            }
         }
 
-        // Persist the updated volunteer entity
-        volunteerRepository.save(volunteer);
+        // Save the volunteer only if there were changes
+        if (changed) {
+            volunteerRepository.save(volunteer);
+        }
 
-        return true;
+        return changed;
     }
 
     public VolunteerFormDto volunteerProfileInfo() {
