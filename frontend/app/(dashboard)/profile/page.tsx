@@ -174,27 +174,43 @@ function ProfileCard() {
                 return;
             }
 
-            // Clean volunteer types: remove surrounding brackets and the "VolunterrTypes." prefix if present.
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
+                let cleaned: string[] = [];
                 if (Array.isArray(types)) {
-                    return Array.from(
-                        new Set(
-                            types.map((t: string) => {
-                                let val = t.trim();
-                                if (val.startsWith("[") && val.endsWith("]")) {
-                                    val = val.substring(1, val.length - 1);
-                                }
-                                if (val.startsWith("VolunterrTypes.")) {
-                                    val = val.replace("VolunterrTypes.", "");
-                                }
-                                return val;
-                            })
-                        )
-                    );
+                  types.forEach((t: string) => {
+                    // Trim whitespace first
+                    let val = t.trim();
+                    // Remove any leading '['
+                    if (val.startsWith("[")) {
+                      val = val.substring(1);
+                    }
+                    // Remove any trailing ']'
+                    if (val.endsWith("]")) {
+                      val = val.substring(0, val.length - 1);
+                    }
+                    // Check if the string contains commas; if so, split and clean each part
+                    if (val.includes(',')) {
+                      val.split(',').forEach((part) => {
+                        let cleanPart = part.trim();
+                        if (cleanPart.startsWith("VolunterrTypes.")) {
+                          cleanPart = cleanPart.replace("VolunterrTypes.", "");
+                        }
+                        cleaned.push(cleanPart);
+                      });
+                    } else {
+                      if (val.startsWith("VolunterrTypes.")) {
+                        val = val.replace("VolunterrTypes.", "");
+                      }
+                      cleaned.push(val);
+                    }
+                  });
                 }
-                return [];
-            };
+                // Remove duplicates if any
+                return Array.from(new Set(cleaned));
+              };
+              
+            
 
             // Always use the data provided (even if blank) rather than falling back to userProfile
             const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes);
@@ -208,9 +224,19 @@ function ProfileCard() {
                 about: cleanedAbout,
             };
 
-            await axios.post("http://localhost:8081/api/volunteers/update", payload, {
-                headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-            });
+            console.log("The payload is : " , payload)
+
+            await axios.post(
+                "http://localhost:8081/api/volunteers/update",
+                payload,
+                {
+                  headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                  }
+                }
+              );
+              
 
             // Update local state with the new (even blank) values
             setUserProfile((prev) => ({

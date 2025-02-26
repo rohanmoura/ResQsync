@@ -20,7 +20,6 @@ import com.reqsync.Reqsync.Service.VolunteerService;
 import jakarta.validation.Valid;
 
 @RestController
-@PreAuthorize("hasAuthority('USER')")
 @RequestMapping("/api/volunteers")
 public class VolunteerController {
 
@@ -30,6 +29,7 @@ public class VolunteerController {
     /**
      * Endpoint to add a new volunteer with validation.
      */
+    @PreAuthorize("hasAuthority('USER')")
     @PostMapping("/add")
     public ResponseEntity<String> addVolunteer(@Valid @RequestBody VolunteerFormDto volunteerProfileDto) {
         try {
@@ -40,6 +40,7 @@ public class VolunteerController {
         }
     }
 
+    @PreAuthorize("hasAuthority('VOLUNTEER')")
     @DeleteMapping("/deletevolunteerrole")
     public ResponseEntity<String> deleteVolunteer(@RequestParam String email) {
         try {
@@ -50,6 +51,7 @@ public class VolunteerController {
         }
     }
 
+    @PreAuthorize("hasAuthority('VOLUNTEER')")
     @PostMapping("/update")
     public ResponseEntity<?> updateVolunteer(@RequestBody VolunteerFormDto volunteerFormDto) {
         try {
@@ -64,9 +66,6 @@ public class VolunteerController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ex.getMessage());
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
-        } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("An unexpected error occurred: " + ex.getMessage());
         }
     }
 
