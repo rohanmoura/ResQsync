@@ -164,6 +164,7 @@ export default function HeroSection() {
   };
 
   // Delete Volunteer handler with loading indicator and email parameter
+  // 1. In handleDeleteVolunteer, added router.refresh() after successful deletion:
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -178,23 +179,24 @@ export default function HeroSection() {
         "http://localhost:8081/api/volunteers/deletevolunteerrole",
         {
           headers: { Authorization: `Bearer ${token}` },
-          params: { email: userProfile?.email }, // Pass email as a parameter
+          params: { email: userProfile?.email },
         }
       );
       toast.success("Volunteer role removed successfully!");
-      // Update userProfile to remove "VOLUNTEER" from roles
       if (userProfile?.roles) {
         setUserProfile({
           ...userProfile,
           roles: userProfile.roles.filter((role) => role !== "VOLUNTEER"),
         });
       }
+      router.refresh(); // <-- Added page refresh here after deletion
     } catch (error) {
       toast.error("Failed to remove volunteer role. Please try again.");
     } finally {
       setIsVolunteerDeleting(false);
     }
   };
+
 
   const handleGetHelpSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -225,6 +227,7 @@ export default function HeroSection() {
     }
   };
 
+  // 2. In handleVolunteerSubmit, added router.refresh() after a successful volunteer creation:
   const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (volunteerTypes.length === 0) {
@@ -257,7 +260,6 @@ export default function HeroSection() {
       setVolunteerSkills([]);
       setVolunteerSkillInput("");
       setVolunteerReason("");
-      // Immediately update localStorage flag and userProfile to include "VOLUNTEER"
       localStorage.setItem("isVolunteer", "true");
       if (userProfile) {
         setUserProfile({
@@ -267,12 +269,14 @@ export default function HeroSection() {
             : [...userProfile.roles, "VOLUNTEER"],
         });
       }
+      router.refresh(); // <-- Added page refresh here after creation
     } catch (error) {
       toast.error("Failed to submit volunteer application. Please try again.");
     } finally {
       setIsVolunteerSubmitting(false);
     }
   };
+
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {

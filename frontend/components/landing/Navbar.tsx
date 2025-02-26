@@ -66,15 +66,13 @@ export default function Navbar() {
         checkAuthStatus();
     }, [router]);
 
-    // Dynamically add "Help Requests" tab if user has both "USER" and "VOLUNTEER" roles
-    const showHelpRequests =
-        user &&
-        user.roles &&
-        user.roles.includes("USER") &&
-        (user.roles.includes("VOLUNTEER") || localStorage.getItem("isVolunteer") === "true")
+    // Updated validation: show tab only if user has both "USER" and "VOLUNTEER" roles
+    const showHelpRequests = user?.roles?.includes("USER") && user?.roles?.includes("VOLUNTEER");
+
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;
+
 
     // Close mobile menu when clicking outside
     useEffect(() => {
