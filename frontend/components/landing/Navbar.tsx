@@ -169,8 +169,12 @@ export default function Navbar() {
         const formData = new FormData();
         formData.append("pdf", selectedFile);
         try {
+            const token = localStorage.getItem("jwtToken");
             await axios.post("http://localhost:8081/api/reports/upload", formData, {
-                headers: { "Content-Type": "multipart/form-data" },
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": `Bearer ${token}`,
+                },
             });
             toast.success("Report uploaded successfully!");
             setLastUploadedFileName(selectedFile.name);
@@ -183,6 +187,7 @@ export default function Navbar() {
             setIsUploading(false);
         }
     };
+
 
     return (
         <>
