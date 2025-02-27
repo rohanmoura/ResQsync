@@ -38,6 +38,7 @@ export default function HeroSection() {
   // Dialog open states
   const [getHelpDialogOpen, setGetHelpDialogOpen] = useState(false);
   const [volunteerDialogOpen, setVolunteerDialogOpen] = useState(false);
+  const [hospitalDialogOpen, setHospitalDialogOpen] = useState(false);
 
   // Form states for Get Help
   const [helpType, setHelpType] = useState("");
@@ -60,8 +61,17 @@ export default function HeroSection() {
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
-  const [hospitalDialogOpen, setHospitalDialogOpen] = useState(false);
 
+  // Form states for Hospital
+  const [registrationNumber, setRegistrationNumber] = useState("");
+  const [hospitalName, setHospitalName] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [stateField, setStateField] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  const [officialEmail, setOfficialEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
 
   const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
@@ -185,7 +195,6 @@ export default function HeroSection() {
     setHospitalDialogOpen(true);
   };
 
-
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -219,7 +228,9 @@ export default function HeroSection() {
   };
 
   const subscribeToNotifications = (email: string) => {
-    const sseUrl = `http://localhost:8081/api/notifications/subscribe?email=${encodeURIComponent(email)}`;
+    const sseUrl = `http://localhost:8081/api/notifications/subscribe?email=${encodeURIComponent(
+      email
+    )}`;
     const eventSource = new EventSource(sseUrl);
     eventSource.onmessage = (event) => {
       try {
@@ -326,6 +337,22 @@ export default function HeroSection() {
     }
   };
 
+  const handleHospitalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    console.log({
+      registrationNumber,
+      hospitalName,
+      address,
+      city,
+      state: stateField,
+      zipCode,
+      officialEmail,
+      phone,
+      website,
+    });
+    setHospitalDialogOpen(false);
+  };
+
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -376,7 +403,6 @@ export default function HeroSection() {
     },
   ];
 
-
   return (
     <section
       id="about"
@@ -408,24 +434,86 @@ export default function HeroSection() {
         </div>
       </div>
 
+      {/* Hospital Dialog with Form */}
       <Dialog open={hospitalDialogOpen} onOpenChange={setHospitalDialogOpen}>
         <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-zinc-900 dark:text-white">
-              Hospital
+              Hospital Information
             </DialogTitle>
             <DialogDescription className="text-zinc-600 dark:text-zinc-400">
-              Hospital
+              Please fill in the hospital details below.
             </DialogDescription>
           </DialogHeader>
-          <div className="text-center mt-4">
-            {/* You can expand this area as needed */}
-            Hospital
-          </div>
+          <form onSubmit={handleHospitalSubmit} className="flex flex-col gap-4 mt-4">
+            <input
+              type="text"
+              placeholder="Registration Number"
+              value={registrationNumber}
+              onChange={(e) => setRegistrationNumber(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Hospital Name"
+              value={hospitalName}
+              onChange={(e) => setHospitalName(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="City"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="State"
+              value={stateField}
+              onChange={(e) => setStateField(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Zip Code"
+              value={zipCode}
+              onChange={(e) => setZipCode(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="email"
+              placeholder="Official Email"
+              value={officialEmail}
+              onChange={(e) => setOfficialEmail(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <input
+              type="text"
+              placeholder="Website"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              className="border p-2 rounded"
+            />
+            <Button type="submit">Submit</Button>
+          </form>
           <DialogClose />
         </DialogContent>
       </Dialog>
-
 
       {/* Get Help Dialog */}
       <Dialog open={getHelpDialogOpen} onOpenChange={setGetHelpDialogOpen}>
