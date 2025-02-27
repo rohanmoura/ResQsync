@@ -30,6 +30,7 @@ export default function Navbar() {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
     const router = useRouter();
     const mobileMenuRef = useRef<HTMLDivElement>(null);
 
@@ -136,7 +137,7 @@ export default function Navbar() {
     const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!selectedFile) {
-            toast.error("No file selected.");
+            toast.error("Please select a PDF file before uploading.");
             return;
         }
         // Validate file size (10 MB maximum)
@@ -146,11 +147,12 @@ export default function Navbar() {
             toast.error("The file is too large. It cannot be greater than 10 MB.");
             return;
         }
+        setIsUploading(true);
         const formData = new FormData();
         formData.append("pdf", selectedFile);
         try {
-            // Upload endpoint changed to /api/reports/upload
-            await axios.post("/api/reports/upload", formData, {
+            // Upload endpoint changed to http://localhost:8081/api/reports/upload
+            await axios.post("http://localhost:8081/api/reports/upload", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             toast.success("Report uploaded successfully!");
@@ -159,6 +161,8 @@ export default function Navbar() {
         } catch (error) {
             console.error("Upload error:", error);
             toast.error("Failed to upload report.");
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -301,10 +305,7 @@ export default function Navbar() {
                         </DialogDescription>
                     </DialogHeader>
                     <form onSubmit={handleUpload} className="mt-6 space-y-4">
-                        <label
-                            htmlFor="pdf-upload"
-                            className="block text-sm font-medium text-foreground"
-                        >
+                        <label htmlFor="pdf-upload" className="block text-sm font-medium text-foreground">
                             Choose PDF File
                         </label>
                         <input
@@ -323,7 +324,9 @@ export default function Navbar() {
                             <Button variant="outline" type="button" onClick={() => setShowReportDialog(false)}>
                                 Cancel
                             </Button>
-                            <Button type="submit">Upload</Button>
+                            <Button type="submit" disabled={!selectedFile || isUploading}>
+                                {isUploading ? "Uploading..." : "Upload"}
+                            </Button>
                         </div>
                     </form>
                     <DialogClose className="absolute top-2 right-2 text-muted hover:text-foreground" />
