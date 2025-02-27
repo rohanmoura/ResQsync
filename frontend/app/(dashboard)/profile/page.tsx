@@ -166,6 +166,7 @@ function ProfileCard() {
             toast.error("Failed to update profile");
         }
     };
+
     const handleVolunteerSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -174,11 +175,40 @@ function ProfileCard() {
                 return;
             }
 
-            const cleanedVolunteerTypes: string[] = Array.from(new Set(data.volunteeringTypes || []));
+            // ✅ Ensure cleaning logic is correct
+            const cleanVolunteerTypes = (types: any): string[] => {
+                if (!types) return [];
+                let cleaned: string[] = [];
+                if (Array.isArray(types)) {
+                    types.forEach((t: string) => {
+                        let val = t.trim();
+                        if (val.startsWith("[")) val = val.substring(1);
+                        if (val.endsWith("]")) val = val.substring(0, val.length - 1);
+                        if (val.includes(",")) {
+                            val.split(",").forEach((part) => {
+                                let cleanPart = part.trim();
+                                if (cleanPart.startsWith("VolunterrTypes.")) {
+                                    cleanPart = cleanPart.replace("VolunterrTypes.", "");
+                                }
+                                cleaned.push(cleanPart);
+                            });
+                        } else {
+                            if (val.startsWith("VolunterrTypes.")) {
+                                val = val.replace("VolunterrTypes.", "");
+                            }
+                            cleaned.push(val);
+                        }
+                    });
+                }
+                return Array.from(new Set(cleaned));
+            };
+
+            // ✅ Apply the cleaner function
+            const cleanedVolunteerTypes: string[] = cleanVolunteerTypes(data.volunteeringTypes);
             const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
             const cleanedAbout: string = data.about?.trim() || "";
 
-            // 🚀 Check if data has changed
+            // 🚀 Check if data has changed before making API call
             if (
                 JSON.stringify(userProfile.volunteeringTypes) === JSON.stringify(cleanedVolunteerTypes) &&
                 JSON.stringify(userProfile.skills) === JSON.stringify(cleanedSkills) &&
@@ -203,11 +233,11 @@ function ProfileCard() {
                 },
             });
 
-            // ✅ Update local state
+            // ✅ Ensure state update happens without type errors
             setUserProfile((prev) => ({
                 ...prev,
-                volunteeringTypes: cleanedVolunteerTypes,
-                skills: cleanedSkills,
+                volunteeringTypes: [...cleanedVolunteerTypes],
+                skills: [...cleanedSkills],
                 about: cleanedAbout,
             }));
 
@@ -221,10 +251,28 @@ function ProfileCard() {
         }
     };
 
+    const handleDeleteHelpRequest = async () => {
+        try {
+            const token = localStorage.getItem("jwtToken");
+            if (!token) {
+                router.push("/");
+                return;
+            }
 
+            await axios.delete("http://localhost:8081/api/help-requests/deletehelprequestorrole", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
+            toast.success("Help requests deleted", {
+                description: "Your help requestor role has been removed.",
+            });
 
-
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting help requestor role:", error);
+            toast.error("Failed to delete help requestor role.");
+        }
+    };
 
     const handleDeleteAccount = async () => {
         try {
@@ -273,6 +321,7 @@ function ProfileCard() {
             : userProfile.email.charAt(0).toUpperCase();
 
     const isVolunteer = userProfile.roles.includes("VOLUNTEER");
+    const isHelpRequester = userProfile.roles.includes("USER") && userProfile.roles.includes("HELPREQUESTER");
 
     return (
         <TooltipProvider>
@@ -344,7 +393,7 @@ function ProfileCard() {
                             </DialogContent>
                         </Dialog>
 
-                        {isVolunteer &&
+                        {isVolunteer && !isHelpRequester &&
                             ((userProfile.volunteeringTypes.length > 0) ||
                                 (userProfile.skills.length > 0) ||
                                 (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -431,7 +480,7 @@ function ProfileCard() {
                                         )}
                                     </div>
                                 )}
-                                {isVolunteer &&
+                                {isVolunteer && !isHelpRequester &&
                                     ((userProfile.volunteeringTypes.length > 0) ||
                                         (userProfile.skills.length > 0) ||
                                         (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -501,6 +550,11 @@ function ProfileCard() {
                                     onCheckedChange={handleDarkModeToggle}
                                 />
                             </div>
+                            {isHelpRequester && (
+                                <Button variant="outline" className="w-full" onClick={handleDeleteHelpRequest}>
+                                    Delete HelpRequest
+                                </Button>
+                            )}
                             <Button
                                 variant="destructive"
                                 className="w-full"
