@@ -175,7 +175,7 @@ function ProfileCard() {
                 return;
             }
 
-            // Clean volunteer types to remove unwanted prefixes
+            // Clean volunteer types to remove unwanted prefixes so that backend receives valid enum values.
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 let cleaned: string[] = [];
@@ -189,12 +189,16 @@ function ProfileCard() {
                                 let cleanPart = part.trim();
                                 if (cleanPart.startsWith("Volunteer.type.")) {
                                     cleanPart = cleanPart.replace("Volunteer.type.", "");
+                                } else if (cleanPart.startsWith("VolunterrTypes.")) {
+                                    cleanPart = cleanPart.replace("VolunterrTypes.", "");
                                 }
                                 cleaned.push(cleanPart);
                             });
                         } else {
                             if (val.startsWith("Volunteer.type.")) {
                                 val = val.replace("Volunteer.type.", "");
+                            } else if (val.startsWith("VolunterrTypes.")) {
+                                val = val.replace("VolunterrTypes.", "");
                             }
                             cleaned.push(val);
                         }
@@ -207,7 +211,7 @@ function ProfileCard() {
             const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
             const cleanedAbout: string = data.about?.trim() || "";
 
-            // If all volunteer fields are empty, do not call API. Just close form and show toast.
+            // If all volunteer fields are empty, simply close the form and show a toast.
             if (cleanedVolunteerTypes.length === 0 && cleanedSkills.length === 0 && cleanedAbout === "") {
                 toast("No volunteer details provided. Nothing to update.");
                 setOpenVolunteerEdit(false);
@@ -227,7 +231,7 @@ function ProfileCard() {
                 return;
             }
 
-            // API call only if there are changes
+            // API call only if there are changes.
             await axios.post(
                 "http://localhost:8081/api/volunteers/update",
                 {
@@ -243,7 +247,7 @@ function ProfileCard() {
                 }
             );
 
-            // Update state with new volunteer details
+            // Update state with new volunteer details.
             setUserProfile((prev) => ({
                 ...prev,
                 volunteeringTypes: [...cleanedVolunteerTypes],
