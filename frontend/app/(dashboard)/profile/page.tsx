@@ -175,7 +175,7 @@ function ProfileCard() {
                 return;
             }
 
-            // Clean volunteer types to remove unwanted prefixes so that backend receives valid enum values.
+            // Clean volunteer types to remove unwanted prefixes so that the backend receives valid enum values.
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 let cleaned: string[] = [];
@@ -244,22 +244,38 @@ function ProfileCard() {
                         Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
+                    validateStatus: (status) => status < 500, // allow 304 responses to be handled here
                 }
-            );
-
-            // Update state with new volunteer details.
-            setUserProfile((prev) => ({
-                ...prev,
-                volunteeringTypes: [...cleanedVolunteerTypes],
-                skills: [...cleanedSkills],
-                about: cleanedAbout,
-            }));
-
-            toast("Volunteer profile updated", {
-                description: "Your volunteer details have been updated successfully.",
+            ).then((response) => {
+                // If a 304 Not Modified is returned, simply treat it as no change.
+                if (response.status === 304) {
+                    toast("No changes detected", {
+                        description: "Your volunteer details are already up to date.",
+                    });
+                    setOpenVolunteerEdit(false);
+                    return;
+                }
+                // Otherwise, update the state with new volunteer details.
+                setUserProfile((prev) => ({
+                    ...prev,
+                    volunteeringTypes: [...cleanedVolunteerTypes],
+                    skills: [...cleanedSkills],
+                    about: cleanedAbout,
+                }));
+                toast("Volunteer profile updated", {
+                    description: "Your volunteer details have been updated successfully.",
+                });
+                setOpenVolunteerEdit(false);
             });
-            setOpenVolunteerEdit(false);
-        } catch (error) {
+        } catch (error: any) {
+            // If we catch an error and it's a 304, handle it here as well.
+            if (error.response && error.response.status === 304) {
+                toast("No changes detected", {
+                    description: "Your volunteer details are already up to date.",
+                });
+                setOpenVolunteerEdit(false);
+                return;
+            }
             console.error("Error updating volunteer profile:", error);
             toast.error("Failed to update volunteer details. Please try again.");
         }
