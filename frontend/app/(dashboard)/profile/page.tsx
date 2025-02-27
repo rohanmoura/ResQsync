@@ -174,10 +174,11 @@ function ProfileCard() {
                 return;
             }
 
-            // ✅ Ensure cleaning logic is correct
+            // ✅ Cleaner function to remove unwanted prefixes
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 let cleaned: string[] = [];
+
                 if (Array.isArray(types)) {
                     types.forEach((t: string) => {
                         let val = t.trim();
@@ -186,26 +187,33 @@ function ProfileCard() {
                         if (val.includes(",")) {
                             val.split(",").forEach((part) => {
                                 let cleanPart = part.trim();
-                                if (cleanPart.startsWith("VolunterrTypes.")) {
-                                    cleanPart = cleanPart.replace("VolunterrTypes.", "");
+                                if (cleanPart.startsWith("Volunteer.type.")) {
+                                    cleanPart = cleanPart.replace("Volunteer.type.", "");
                                 }
                                 cleaned.push(cleanPart);
                             });
                         } else {
-                            if (val.startsWith("VolunterrTypes.")) {
-                                val = val.replace("VolunterrTypes.", "");
+                            if (val.startsWith("Volunteer.type.")) {
+                                val = val.replace("Volunteer.type.", "");
                             }
                             cleaned.push(val);
                         }
                     });
                 }
-                return Array.from(new Set(cleaned));
+                return Array.from(new Set(cleaned)); // Remove duplicates
             };
 
             // ✅ Apply the cleaner function
             const cleanedVolunteerTypes: string[] = cleanVolunteerTypes(data.volunteeringTypes);
             const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
             const cleanedAbout: string = data.about?.trim() || "";
+
+            // 🚀 Ensure form isn't submitted with empty values
+            if (cleanedVolunteerTypes.length === 0 && cleanedSkills.length === 0 && cleanedAbout === "") {
+                toast.error("Volunteer details cannot be empty.");
+                setOpenVolunteerEdit(false);
+                return;
+            }
 
             // 🚀 Check if data has changed before making API call
             if (
@@ -249,6 +257,7 @@ function ProfileCard() {
             toast.error("Failed to update volunteer details. Please try again.");
         }
     };
+
 
 
 
