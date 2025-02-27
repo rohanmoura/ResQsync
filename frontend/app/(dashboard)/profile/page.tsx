@@ -166,7 +166,6 @@ function ProfileCard() {
             toast.error("Failed to update profile");
         }
     };
-
     const handleVolunteerSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -251,28 +250,8 @@ function ProfileCard() {
         }
     };
 
-    const handleDeleteHelpRequest = async () => {
-        try {
-            const token = localStorage.getItem("jwtToken");
-            if (!token) {
-                router.push("/");
-                return;
-            }
 
-            await axios.delete("http://localhost:8081/api/help-requests/deletehelprequestorrole", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
 
-            toast.success("Help requests deleted", {
-                description: "Your help requestor role has been removed.",
-            });
-
-            router.refresh();
-        } catch (error) {
-            console.error("Error deleting help requestor role:", error);
-            toast.error("Failed to delete help requestor role.");
-        }
-    };
 
     const handleDeleteAccount = async () => {
         try {
@@ -321,7 +300,6 @@ function ProfileCard() {
             : userProfile.email.charAt(0).toUpperCase();
 
     const isVolunteer = userProfile.roles.includes("VOLUNTEER");
-    const isHelpRequester = userProfile.roles.includes("USER") && userProfile.roles.includes("HELPREQUESTER");
 
     return (
         <TooltipProvider>
@@ -393,7 +371,7 @@ function ProfileCard() {
                             </DialogContent>
                         </Dialog>
 
-                        {isVolunteer && !isHelpRequester &&
+                        {isVolunteer &&
                             ((userProfile.volunteeringTypes.length > 0) ||
                                 (userProfile.skills.length > 0) ||
                                 (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -480,7 +458,7 @@ function ProfileCard() {
                                         )}
                                     </div>
                                 )}
-                                {isVolunteer && !isHelpRequester &&
+                                {isVolunteer &&
                                     ((userProfile.volunteeringTypes.length > 0) ||
                                         (userProfile.skills.length > 0) ||
                                         (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -531,6 +509,7 @@ function ProfileCard() {
                                                     <div className="text-gray-700">{userProfile.about}</div>
                                                 </>
                                             )}
+
                                         </div>
                                     )}
                             </div>
@@ -550,11 +529,6 @@ function ProfileCard() {
                                     onCheckedChange={handleDarkModeToggle}
                                 />
                             </div>
-                            {isHelpRequester && (
-                                <Button variant="outline" className="w-full" onClick={handleDeleteHelpRequest}>
-                                    Delete HelpRequest
-                                </Button>
-                            )}
                             <Button
                                 variant="destructive"
                                 className="w-full"
