@@ -326,6 +326,7 @@ function ProfileCard() {
             }
             await axios.delete("http://localhost:8081/api/help-requests/deletehelprequestorrole", {
                 headers: { Authorization: `Bearer ${token}` },
+                params: { email: userProfile.email }, // <-- Added email parameter here
             });
             toast("Help requests deleted", {
                 description: "Your help requests have been deleted successfully.",
@@ -336,6 +337,7 @@ function ProfileCard() {
             toast.error("Failed to delete help requests");
         }
     };
+
 
     const resolvedAvatarUrl = userProfile.profilePicture
         ? userProfile.profilePicture.startsWith("http") || userProfile.profilePicture.startsWith("blob:")
