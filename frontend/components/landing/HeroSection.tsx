@@ -358,10 +358,8 @@ export default function HeroSection() {
   // Prepare dropdown actions using the existing handlers
   const dropdownActions: ActionItem[] = [
     {
-      label: "Hospital ",
-      onClick() {
-        console.log("Hospital");
-      },
+      label: "Hospital",
+      onClick: handleHospitalButtonClick,
     },
     {
       label: "Get Help",
@@ -376,8 +374,8 @@ export default function HeroSection() {
       onClick: isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick,
       disabled: isVolunteer ? isVolunteerDeleting : false,
     },
-
   ];
+
 
   return (
     <section
