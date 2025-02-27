@@ -8,6 +8,9 @@ import { useRouter } from "next/navigation";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
+// Import TextShimmer from your motion-pretives component library
+import { TextShimmer } from "@/components/core/text-shimmer";
+
 const ReportsPage = () => {
     const [reports, setReports] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -47,35 +50,44 @@ const ReportsPage = () => {
 
     return (
         <div className="container mx-auto p-4">
-            <h1 className="text-3xl font-bold text-primary mb-6">Reports</h1>
+            {/* Centered heading using TextShimmer */}
+            <div className="text-center mb-8">
+                <TextShimmer duration={1.5} spread={3} className="text-3xl font-bold text-primary inline-block">
+                    Reports
+                </TextShimmer>
+            </div>
             {reports.length === 0 ? (
-                <p className="text-muted-foreground">No reports found.</p>
+                <p className="text-muted-foreground text-center">No reports found.</p>
             ) : (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {reports.map((report) => (
-                        <Card key={report.id} className="border border-border shadow-md rounded-lg">
-                            <CardHeader>
-                                <CardTitle className="text-xl font-bold">{report.fileName}</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground">Report ID: {report.id}</p>
-                            </CardContent>
-                            <CardFooter className="flex justify-between">
-                                <a href={report.reportDataUrl} download={report.fileName}>
-                                    <Button variant="outline" size="sm">
-                                        Download
+                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+                    {reports.map((report) => {
+                        // Encode the URL so that spaces and special characters are handled
+                        const fileUrl = encodeURI(report.reportDataUrl);
+                        return (
+                            <Card key={report.id} className="border border-border shadow-md rounded-lg">
+                                <CardHeader>
+                                    <CardTitle className="text-xl font-bold">{report.fileName}</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-muted-foreground">Report ID: {report.id}</p>
+                                </CardContent>
+                                <CardFooter className="flex justify-between">
+                                    <a href={fileUrl} download={report.fileName} target="_blank" rel="noopener noreferrer">
+                                        <Button variant="outline" size="sm">
+                                            Download
+                                        </Button>
+                                    </a>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => window.open(fileUrl, "_blank", "noopener,noreferrer")}
+                                    >
+                                        Open
                                     </Button>
-                                </a>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => window.open(report.reportDataUrl, "_blank")}
-                                >
-                                    Open
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ))}
+                                </CardFooter>
+                            </Card>
+                        );
+                    })}
                 </div>
             )}
         </div>
