@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, FormEvent, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { ModeToggle } from "./ToogleMode";
 import { AnimatedBackground } from "@/components/core/animated-background";
@@ -8,24 +8,30 @@ import { GlowEffect } from "@/components/core/glow-effect";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { Bell } from "lucide-react";
+import { Bell, FilePlus } from "lucide-react";
+import { toast } from "sonner";
 
-// Shadcn UI imports
+// Shadcn UI Tooltip imports
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
-import { Popover, PopoverTrigger, PopoverContent } from "../ui/popover";
 
-// Your SSE notifications component
-import NotificationComponent from "@/app/_components/NotificationComponent";
+// Dialog components for report submission
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogClose,
+} from "@/components/ui/dialog";
 
 export default function Navbar() {
     const [user, setUser] = useState<{ name: string; profilePicture?: string; roles?: string[] } | null>(null);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const router = useRouter();
     const mobileMenuRef = useRef<HTMLDivElement>(null);
-
-    // Track how many NEW (unread) notifications arrived
-    const [unreadCount, setUnreadCount] = useState(0);
 
     // TABS for navigation
     const TABS = [
@@ -76,11 +82,10 @@ export default function Navbar() {
         checkAuthStatus();
     }, [router]);
 
-    // If user has both "USER" and "VOLUNTEER" roles, show Help Requests & notifications
-   // Show Help Requests & notifications if user has "USER" role and either "VOLUNTEER" or "HELPREQUESTER" role
-const showHelpRequests =
-user?.roles?.includes("USER") &&
-(user?.roles?.includes("VOLUNTEER") || user?.roles?.includes("HELPREQUESTER"));
+    // Show Help Requests if user has "USER" and (VOLUNTEER or HELPREQUESTER) role
+    const showHelpRequests =
+        user?.roles?.includes("USER") &&
+        (user?.roles?.includes("VOLUNTEER") || user?.roles?.includes("HELPREQUESTER"));
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;
@@ -100,165 +105,230 @@ user?.roles?.includes("USER") &&
         };
     }, [isMenuOpen]);
 
-    /**
-     * Whenever a new notification arrives via SSE, increment unread count (max 9).
-     */
-    function handleNewNotification() {
-        setUnreadCount((prev) => {
-            if (prev < 9) return prev + 1;
-            return 9; // if 9 or more, show "9+"
-        });
-    }
-
-    /**
-     * When the user opens the popover, we consider them to have "seen" all new notifications,
-     * so we reset the unread count to 0.
-     */
-    function handlePopoverOpenChange(open: boolean) {
-        if (open) {
-            // popover is opening
-            setUnreadCount(0);
+    // Handle click for "Add Reports" icon
+    const handleAddReportClick = () => {
+        if (isAuthenticated) {
+            setShowReportDialog(true);
+        } else {
+            toast("Authentication Required", {
+                description: "If you want to add reports, you have to log in",
+                action: {
+                    label: "Signin",
+                    onClick: () => router.push("/signin"),
+                },
+            });
         }
-    }
+    };
+
+    // Handle file selection
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type === "application/pdf") {
+                setSelectedFile(file);
+            } else {
+                toast.error("Please select a valid PDF file.");
+            }
+        }
+    };
+
+    // Handle PDF upload submission with size validation (10 MB max)
+    const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!selectedFile) {
+            toast.error("No file selected.");
+            return;
+        }
+        // Validate file size (10 MB maximum)
+        const maxSize = 10 * 1024 * 1024; // 10 MB in bytes
+        if (selectedFile.size > maxSize) {
+            setShowReportDialog(false);
+            toast.error("The file is too large. It cannot be greater than 10 MB.");
+            return;
+        }
+        const formData = new FormData();
+        formData.append("pdf", selectedFile);
+        try {
+            // Upload endpoint changed to /api/reports/upload
+            await axios.post("/api/reports/upload", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+            toast.success("Report uploaded successfully!");
+            setSelectedFile(null);
+            setShowReportDialog(false);
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast.error("Failed to upload report.");
+        }
+    };
 
     return (
-        <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
-            <div className="container mx-auto px-4 py-3 flex items-center justify-between">
-                {/* Logo */}
-                <Link href="/" prefetch={false} className="text-xl font-bold text-primary">
-                    ResQSync
-                </Link>
+        <>
+            <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
+                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+                    {/* Logo */}
+                    <Link href="/" prefetch={false} className="text-xl font-bold text-primary">
+                        ResQSync
+                    </Link>
 
-                {/* Center: Navigation Menu */}
-                <div className="hidden md:flex space-x-8 relative">
-                    <AnimatedBackground
-                        defaultValue={finalTabs[0].label}
-                        className="rounded-lg bg-zinc-100 dark:bg-zinc-800"
-                        transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
-                        enableHover
+                    {/* Center: Navigation Menu */}
+                    <div className="hidden md:flex space-x-8 relative">
+                        <AnimatedBackground
+                            defaultValue={finalTabs[0].label}
+                            className="rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+                            enableHover
+                        >
+                            {finalTabs.map((tab, index) => (
+                                <Link
+                                    key={index}
+                                    href={tab.href}
+                                    prefetch={tab.href.startsWith("#") ? false : undefined}
+                                    data-id={tab.label}
+                                    className="px-4 py-1.5 text-base font-medium text-foreground transition-colors duration-300 hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
+                                >
+                                    {tab.label}
+                                </Link>
+                            ))}
+                        </AnimatedBackground>
+                    </div>
+
+                    {/* Right side: Add Reports, Notifications, ModeToggle, Auth */}
+                    <div className="flex items-center space-x-7">
+                        {/* Add Reports Icon */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={handleAddReportClick}
+                                        className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors"
+                                    >
+                                        <FilePlus className="w-5 h-5" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Add Reports</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Notifications Icon (shown if help requests are available) */}
+                        {showHelpRequests && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
+                                            <Bell className="w-5 h-5" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Notifications</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+
+                        <ModeToggle />
+
+                        {/* Profile or Log In */}
+                        <div className="relative inline-block">
+                            <GlowEffect
+                                colors={["#6366F1", "#818CF8", "#A78BFA", "#C7D2FE"]}
+                                mode="colorShift"
+                                blur="medium"
+                                duration={2}
+                                scale={1.1}
+                            />
+                            {isAuthenticated ? (
+                                <Link href="/profile" passHref prefetch={false}>
+                                    <Avatar className="cursor-pointer border border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all">
+                                        {user?.profilePicture ? (
+                                            <AvatarImage
+                                                src={`data:image/png;base64,${user.profilePicture}`}
+                                                alt="User Avatar"
+                                                onError={(e) => (e.currentTarget.src = "")}
+                                            />
+                                        ) : (
+                                            <AvatarFallback>{user?.name.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                                        )}
+                                    </Avatar>
+                                </Link>
+                            ) : (
+                                <Link href="/signin" passHref prefetch={false}>
+                                    <Button
+                                        variant="ghost"
+                                        className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
+                                    >
+                                        Log In
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Hamburger Menu for Mobile */}
+                    <div className="md:hidden">
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-primary focus:outline-none">
+                            ☰
+                        </button>
+                    </div>
+                </div>
+
+                {/* Mobile Dropdown Menu */}
+                {isMenuOpen && (
+                    <div
+                        ref={mobileMenuRef}
+                        className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40"
                     >
                         {finalTabs.map((tab, index) => (
                             <Link
                                 key={index}
                                 href={tab.href}
                                 prefetch={tab.href.startsWith("#") ? false : undefined}
-                                data-id={tab.label}
-                                className="px-4 py-1.5 text-base font-medium text-foreground transition-colors duration-300 hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
+                                className="block px-4 py-2 text-base font-medium text-foreground hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
+                                onClick={() => setIsMenuOpen(false)}
                             >
                                 {tab.label}
                             </Link>
                         ))}
-                    </AnimatedBackground>
-                </div>
-
-                {/* Right side: Notifications, ModeToggle, Auth */}
-                <div className="flex items-center space-x-7">
-                    {showHelpRequests && (
-                        <TooltipProvider>
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <Popover onOpenChange={handlePopoverOpenChange}>
-                                        <PopoverTrigger asChild>
-                                            <button className="relative p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
-                                                <Bell className="w-5 h-5" />
-                                                {/* Show badge only if unreadCount > 0 */}
-                                                {unreadCount > 0 && (
-                                                    <span
-                                                        className="absolute -top-1 -right-1 bg-red-600 text-white text-xs w-4 h-4 rounded-full flex items-center justify-center"
-                                                        style={{ fontSize: '0.65rem' }}
-                                                    >
-                                                        {unreadCount < 9 ? unreadCount : '9+'}
-                                                    </span>
-                                                )}
-                                            </button>
-                                        </PopoverTrigger>
-                                        <PopoverContent
-                                            side="bottom"
-                                            align="end"
-                                            sideOffset={8}
-                                            className="w-[320px] p-0"
-                                        >
-                                            {/* 
-                        Pass the callback so SSE can tell us about new notifications.
-                        However, once the popover is open, we reset unreadCount to 0 
-                        in handlePopoverOpenChange above. 
-                      */}
-                                            <NotificationComponent onNewNotification={handleNewNotification} />
-                                        </PopoverContent>
-                                    </Popover>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                    Notifications
-                                </TooltipContent>
-                            </Tooltip>
-                        </TooltipProvider>
-                    )}
-
-                    <ModeToggle />
-
-                    {/* Profile or Log In */}
-                    <div className="relative inline-block">
-                        <GlowEffect
-                            colors={["#6366F1", "#818CF8", "#A78BFA", "#C7D2FE"]}
-                            mode="colorShift"
-                            blur="medium"
-                            duration={2}
-                            scale={1.1}
-                        />
-                        {isAuthenticated ? (
-                            <Link href="/profile" passHref prefetch={false}>
-                                <Avatar className="cursor-pointer border border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all">
-                                    {user?.profilePicture ? (
-                                        <AvatarImage
-                                            src={`data:image/png;base64,${user.profilePicture}`}
-                                            alt="User Avatar"
-                                            onError={(e) => (e.currentTarget.src = "")}
-                                        />
-                                    ) : (
-                                        <AvatarFallback>{user?.name.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-                                    )}
-                                </Avatar>
-                            </Link>
-                        ) : (
-                            <Link href="/signin" passHref prefetch={false}>
-                                <Button
-                                    variant="ghost"
-                                    className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
-                                >
-                                    Log In
-                                </Button>
-                            </Link>
-                        )}
                     </div>
-                </div>
+                )}
+            </nav>
 
-                {/* Hamburger Menu for Mobile */}
-                <div className="md:hidden">
-                    <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-primary focus:outline-none">
-                        ☰
-                    </button>
-                </div>
-            </div>
-
-            {/* Mobile Dropdown Menu */}
-            {isMenuOpen && (
-                <div
-                    ref={mobileMenuRef}
-                    className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40"
-                >
-                    {finalTabs.map((tab, index) => (
-                        <Link
-                            key={index}
-                            href={tab.href}
-                            prefetch={tab.href.startsWith("#") ? false : undefined}
-                            className="block px-4 py-2 text-base font-medium text-foreground hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
-                            onClick={() => setIsMenuOpen(false)}
+            {/* Dialog for Adding Reports with PDF Uploader */}
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+                <DialogContent className="sm:max-w-[425px] rounded-lg p-6 bg-[hsl(var(--card))] shadow-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-primary font-bold">Add Report</DialogTitle>
+                        <DialogDescription className="text-muted text-sm">
+                            Please select and upload your PDF report (max 10 MB).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUpload} className="mt-6 space-y-4">
+                        <label
+                            htmlFor="pdf-upload"
+                            className="block text-sm font-medium text-foreground"
                         >
-                            {tab.label}
-                        </Link>
-                    ))}
-                </div>
-            )}
-        </nav>
+                            Choose PDF File
+                        </label>
+                        <input
+                            id="pdf-upload"
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileChange}
+                            className="block w-full text-sm text-foreground border border-border rounded-lg cursor-pointer bg-secondary p-2 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-secondary dark:border-gray-600"
+                        />
+                        {selectedFile && (
+                            <p className="text-xs text-muted-foreground">
+                                Selected file: <span className="font-medium">{selectedFile.name}</span>
+                            </p>
+                        )}
+                        <div className="flex justify-end space-x-3 pt-2">
+                            <Button variant="outline" type="button" onClick={() => setShowReportDialog(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit">Upload</Button>
+                        </div>
+                    </form>
+                    <DialogClose className="absolute top-2 right-2 text-muted hover:text-foreground" />
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }

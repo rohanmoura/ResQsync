@@ -330,6 +330,12 @@ export default function HeroSection() {
   // Prepare dropdown actions using the existing handlers
   const dropdownActions: ActionItem[] = [
     {
+      label: "Hospital ",
+      onClick() {
+        console.log("Hospital");
+      },
+    },
+    {
       label: "Get Help",
       onClick: handleGetHelpButtonClick,
     },
@@ -342,24 +348,7 @@ export default function HeroSection() {
       onClick: isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick,
       disabled: isVolunteer ? isVolunteerDeleting : false,
     },
-    {
-      label: "Patient",
-      onClick() {
-        console.log("Patient");
-      },
-    },
-    {
-      label: "Doctor",
-      onClick() {
-        console.log("Doctor");
-      },
-    },
-    {
-      label: "Hospital ",
-      onClick() {
-        console.log("Hospital");
-      },
-    }
+
   ];
 
   return (
@@ -389,18 +378,7 @@ export default function HeroSection() {
         </TextEffect>
         {/* Use the dropdown component instead of two separate buttons */}
         <div className="flex items-center justify-center mt-6">
-          <InView
-            variants={{
-              hidden: { opacity: 0, y: 100, filter: "blur(4px)" },
-              visible: { opacity: 1, y: 0, filter: "blur(0px)" },
-            }}
-            viewOptions={{ margin: "0px 0px -200px 0px" }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-          >
-            {({ inView }) => (
-              <ActionDropdown actions={dropdownActions} triggerLabel="Choose Your Role" />
-            )}
-          </InView>
+          <ActionDropdown actions={dropdownActions} triggerLabel="Choose Your Role" />
         </div>
       </div>
 
