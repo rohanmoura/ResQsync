@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { toast } from "sonner"; // assuming you're using 'sonner' for toast notifications
+import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { TextEffect } from "@/components/core/text-effect";
 import { TextLoop } from "@/components/core/text-loop";
+import ActionDropdown, { ActionItem } from "@/components/landing/ActionDropdown";
+import { InView } from "../core/in-view";
 
 type UserProfile = {
   name: string;
@@ -24,7 +26,6 @@ type UserProfile = {
   area: string;
   bio: string;
   profilePicture: string | null;
-  // any other fields, e.g., volunteer details...
 };
 
 export default function HeroSection() {
@@ -44,7 +45,6 @@ export default function HeroSection() {
 
   // Form states for Volunteer
   const [volunteerReason, setVolunteerReason] = useState("");
-  // Volunteer dialog options:
   const volunteerTypeOptions = [
     "MEDICAL_ASSISTANCE",
     "PATIENT_SUPPORT",
@@ -60,10 +60,7 @@ export default function HeroSection() {
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
-  // Removed: isHelpRequestDeleting state since deletion functionality is removed.
-  // const [isHelpRequestDeleting, setIsHelpRequestDeleting] = useState(false);
 
-  // Helper: Check which required fields are missing
   const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
     if (!profile.name) missing.push("name");
@@ -96,9 +93,7 @@ export default function HeroSection() {
     }
   }, []);
 
-  // Derive volunteer status from userProfile roles (now expecting "VOLUNTEER")
   const isVolunteer = userProfile?.roles?.includes("VOLUNTEER") ?? false;
-  // Derive help requester status if needed (assuming "HELPREQUESTER" role)
   const isHelpRequester = userProfile?.roles?.includes("HELPREQUESTER") ?? false;
 
   const handleGetHelpButtonClick = () => {
@@ -123,7 +118,6 @@ export default function HeroSection() {
       );
       return;
     }
-    // If user is both a volunteer and a regular user, block help request until volunteer role is removed.
     if (userProfile.roles.includes("VOLUNTEER")) {
       toast.error(
         "You are currently a volunteer so you cannot request help. Please remove your volunteer role to request help."
@@ -155,7 +149,6 @@ export default function HeroSection() {
       );
       return;
     }
-    // If user's role includes HELPREQUESTER, block volunteering until that role is removed.
     if (userProfile.roles.includes("HELPREQUESTER")) {
       toast.error(
         "You are currently a help requester so you cannot volunteer. Please remove your help requester role to volunteer."
@@ -165,7 +158,6 @@ export default function HeroSection() {
     setVolunteerDialogOpen(true);
   };
 
-  // Delete Volunteer handler with loading indicator and email parameter
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
     if (!token) {
@@ -198,8 +190,6 @@ export default function HeroSection() {
     }
   };
 
-
-  // Helper function to immediately subscribe to notifications via SSE.
   const subscribeToNotifications = (email: string) => {
     const sseUrl = `http://localhost:8081/api/notifications/subscribe?email=${encodeURIComponent(email)}`;
     const eventSource = new EventSource(sseUrl);
@@ -207,7 +197,6 @@ export default function HeroSection() {
       try {
         const notification = JSON.parse(event.data);
         console.log("New notification received:", notification);
-        // Optionally update your notifications state or context here
       } catch (error) {
         console.error("Error parsing notification data:", error);
       }
@@ -241,7 +230,6 @@ export default function HeroSection() {
       setGetHelpDialogOpen(false);
       setHelpType("");
       setHelpDescription("");
-      // Reload landing page only on the first successful help request submission
       if (!sessionStorage.getItem("helpRequestReloaded")) {
         sessionStorage.setItem("helpRequestReloaded", "true");
         window.location.reload();
@@ -252,9 +240,7 @@ export default function HeroSection() {
       setIsGetHelpSubmitting(false);
     }
   };
-  
 
-  // Volunteer submission handler: after successful creation, immediately subscribe to notifications if roles include "VOLUNTEER", then reload.
   const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (volunteerTypes.length === 0) {
@@ -289,7 +275,6 @@ export default function HeroSection() {
       setVolunteerReason("");
       localStorage.setItem("isVolunteer", "true");
       if (userProfile) {
-        // Create an updated profile with the "VOLUNTEER" role added if not already present.
         const updatedProfile = {
           ...userProfile,
           roles: userProfile.roles.includes("VOLUNTEER")
@@ -297,7 +282,6 @@ export default function HeroSection() {
             : [...userProfile.roles, "VOLUNTEER"],
         };
         setUserProfile(updatedProfile);
-        // Immediately subscribe to notifications if the updated profile has both "USER" and "VOLUNTEER" roles.
         if (
           updatedProfile.email &&
           updatedProfile.roles.includes("VOLUNTEER") &&
@@ -343,6 +327,41 @@ export default function HeroSection() {
       </div>
     );
 
+  // Prepare dropdown actions using the existing handlers
+  const dropdownActions: ActionItem[] = [
+    {
+      label: "Get Help",
+      onClick: handleGetHelpButtonClick,
+    },
+    {
+      label: isVolunteer
+        ? isVolunteerDeleting
+          ? "Deleting..."
+          : "Delete Volunteer"
+        : "Volunteer",
+      onClick: isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick,
+      disabled: isVolunteer ? isVolunteerDeleting : false,
+    },
+    {
+      label: "Patient",
+      onClick() {
+        console.log("Patient");
+      },
+    },
+    {
+      label: "Doctor",
+      onClick() {
+        console.log("Doctor");
+      },
+    },
+    {
+      label: "Hospital ",
+      onClick() {
+        console.log("Hospital");
+      },
+    }
+  ];
+
   return (
     <section
       id="about"
@@ -354,10 +373,10 @@ export default function HeroSection() {
             ResQSync
           </TextEffect>
           <TextLoop className="ml-2 text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight dark:text-white text-black hidden md:inline-block overflow-hidden">
-            <span>: Optimize Crisis Response</span>
-            <span>: Streamline Emergency Management</span>
-            <span>: Revolutionize Disaster Relief</span>
-            <span>: Simplify Resource Allocation</span>
+            <span>: Crisis Response Reinvented</span>
+            <span>: Smarter Emergency Care</span>
+            <span>: Bridging Help & Hope</span>
+            <span>: AI-Powered Assistance</span>
           </TextLoop>
         </h1>
         <TextEffect
@@ -366,37 +385,25 @@ export default function HeroSection() {
           preset="fade-in-blur"
           className="text-base sm:text-lg md:text-xl max-w-3xl mx-auto dark:text-gray-300 text-gray-700"
         >
-          Seamlessly allocate resources, track crises in real time, and dispatch help at the push of a button.
+          Connecting hospitals, responders, and volunteers for real-time emergency support.
         </TextEffect>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 mt-6 sm:mt-8">
-          {/* Updated Get Help / Delete Request Button */}
-          <Button
-            size="sm"
-            className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-8 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
-            onClick={handleGetHelpButtonClick}
+        {/* Use the dropdown component instead of two separate buttons */}
+        <div className="flex items-center justify-center mt-6">
+          <InView
+            variants={{
+              hidden: { opacity: 0, y: 100, filter: "blur(4px)" },
+              visible: { opacity: 1, y: 0, filter: "blur(0px)" },
+            }}
+            viewOptions={{ margin: "0px 0px -200px 0px" }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            Get help
-          </Button>
-          <Button
-  size="sm"
-  variant="outline"
-  className={`w-fit ${isVolunteer ? "px-8" : "px-6"} py-3 text-black border-2 border-black dark:bg-black dark:text-white dark:border-white transition-all rounded-lg shadow-lg ${
-    isHelpRequester
-      ? "opacity-50 cursor-not-allowed"
-      : "hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black animate-bounce"
-  }`}
-  onClick={isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick}
-  disabled={isVolunteer ? isVolunteerDeleting : false}
->
-  {isVolunteer
-    ? isVolunteerDeleting
-      ? "Deleting..."
-      : "Delete Volunteer"
-    : "Volunteer"}
-</Button>
-
+            {({ inView }) => (
+              <ActionDropdown actions={dropdownActions} triggerLabel="Choose Your Role" />
+            )}
+          </InView>
         </div>
       </div>
+
 
       {/* Get Help Dialog */}
       <Dialog open={getHelpDialogOpen} onOpenChange={setGetHelpDialogOpen}>
@@ -443,7 +450,6 @@ export default function HeroSection() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleVolunteerSubmit} className="flex flex-col gap-4 mt-4">
-            {/* Volunteer Types Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">Types of Volunteer</h3>
               <div className="grid grid-cols-2 gap-2">
@@ -466,7 +472,6 @@ export default function HeroSection() {
                 ))}
               </div>
             </div>
-            {/* Skills Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">Skills</h3>
               <input
@@ -492,7 +497,6 @@ export default function HeroSection() {
                 ))}
               </div>
             </div>
-            {/* Volunteer Reason Section */}
             <div>
               <h3 className="text-lg font-medium mb-2">Reason for Volunteering</h3>
               <textarea

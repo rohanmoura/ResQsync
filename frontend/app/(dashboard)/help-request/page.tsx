@@ -88,7 +88,6 @@ const HelpRequestPage = () => {
         <div className="container mx-auto p-4">
             {/* Animated Page Heading */}
             <div className="text-center mb-8">
-                <TextRoll className="text-3xl font-bold text-primary">Help Requests</TextRoll>
                 <TextShimmer duration={1.5} spread={3} className="absolute inset-0 text-3xl font-bold">
                     Help Requests
                 </TextShimmer>

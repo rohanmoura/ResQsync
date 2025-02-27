@@ -8,22 +8,20 @@ const steps = [
   {
     number: "01",
     title: "Connect",
-    description:
-      "Integrate ResQSync with your existing emergency response systems.",
+    description: "Link ResQSync with emergency systems.",
   },
   {
     number: "02",
     title: "Monitor",
-    description:
-      "Track resources, personnel, and emergencies in real-time.",
+    description: "Track resources and emergencies live.",
   },
   {
     number: "03",
     title: "Respond",
-    description:
-      "Utilize AI-driven insights for swift and effective crisis management.",
+    description: "Use AI insights for quick action.",
   },
 ];
+
 
 export default function HowItWorksSection() {
   return (

@@ -10,29 +10,27 @@ import { Spotlighter } from '../core/spotlighter';
 const features = [
   {
     icon: MapPin,
-    title: "Real-time Tracking",
-    description:
-      "Monitor resources and personnel in real-time for efficient crisis management.",
+    title: "Live Crisis & Healthcare Tracking",
+    description: "Monitor emergencies and hospital resources in real-time.",
   },
   {
     icon: Ambulance,
-    title: "Ambulance Dispatch",
-    description:
-      "Intelligent routing and dispatch system for faster emergency response.",
+    title: "Emergency Dispatch",
+    description: "Coordinate ambulances and urgent medical help.",
   },
   {
     icon: Bell,
-    title: "Automated Notifications",
-    description:
-      "Instant alerts to keep all stakeholders informed during critical situations.",
+    title: "Instant Alerts",
+    description: "Notify responders and hospitals instantly.",
   },
   {
     icon: BarChart,
-    title: "Crisis Data Visualization",
-    description:
-      "Comprehensive dashboards for data-driven decision making in emergencies.",
+    title: "Smart Insights",
+    description: "Use AI-driven data for better decision-making.",
   },
 ];
+
+
 
 export default function FeaturesSection() {
   return (

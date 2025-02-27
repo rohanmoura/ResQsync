@@ -37,14 +37,14 @@ export default function CTASection() {
                 }}
                 className="text-3xl sm:text-4xl font-bold text-[hsl(var(--foreground))]"
               >
-                Ready to Optimize Your Crisis Management?
+                Ready to Enhance Emergency Response?
               </TextEffect>
               <TextEffect
                 per="char"
                 delay={1.5}
                 className="text-base sm:text-lg text-[hsl(var(--muted-foreground))]"
               >
-                Join ResQSync today and experience the future of emergency response.
+                Join ResQSync and transform crisis management.
               </TextEffect>
             </div>
           )}

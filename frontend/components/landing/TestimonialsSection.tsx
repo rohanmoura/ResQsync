@@ -5,30 +5,27 @@ import { InfiniteSlider } from "../core/infinite-slider";
 
 const testimonials = [
   {
-    quote:
-      "ResQSync has revolutionized our emergency response system. It's a game-changer for crisis management.",
+    quote: "ResQSync has transformed our emergency response.",
     author: "John Doe",
     title: "Emergency Response Director",
   },
   {
-    quote:
-      "The real-time tracking and automated alerts have significantly improved our response times.",
+    quote: "Real-time tracking has improved our response times.",
     author: "Jane Smith",
     title: "Fire Chief",
   },
   {
-    quote:
-      "We've been able to respond faster to natural disasters and better coordinate with local agencies. It's invaluable.",
+    quote: "Faster disaster response and better coordination.",
     author: "Mark Anderson",
     title: "Paramedic Supervisor",
   },
   {
-    quote:
-      "ResQSync's user-friendly interface and real-time data have streamlined our entire operation.",
+    quote: "User-friendly and streamlined our operations.",
     author: "Sarah Thompson",
     title: "911 Dispatch Coordinator",
   },
 ];
+
 
 export default function TestimonialsSection() {
   return (
