@@ -31,10 +31,11 @@ export default function Navbar() {
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [lastUploadedFileName, setLastUploadedFileName] = useState<string | null>(null);
     const router = useRouter();
     const mobileMenuRef = useRef<HTMLDivElement>(null);
 
-    // TABS for navigation
+    // Base TABS for navigation
     const TABS = [
         { label: "About Us", href: "#about" },
         { label: "Solutions", href: "#solutions" },
@@ -83,13 +84,25 @@ export default function Navbar() {
         checkAuthStatus();
     }, [router]);
 
-    // Show Help Requests if user has "USER" and (VOLUNTEER or HELPREQUESTER) role
+    // Condition for Help Requests tab: shown when user has role USER along with VOLUNTEER or HELPREQUESTER
     const showHelpRequests =
         user?.roles?.includes("USER") &&
         (user?.roles?.includes("VOLUNTEER") || user?.roles?.includes("HELPREQUESTER"));
-    const finalTabs = showHelpRequests
-        ? [...TABS, { label: "Help Requests", href: "/help-request" }]
-        : TABS;
+
+    // Condition for Reports tab: shown when user has role USER and either HOSPITAL or (only USER without VOLUNTEER/HELPREQUESTER)
+    const showReportsTab =
+        user?.roles?.includes("USER") &&
+        (user?.roles?.includes("HOSPITAL") ||
+            (!user?.roles?.includes("VOLUNTEER") && !user?.roles?.includes("HELPREQUESTER")));
+
+    // Build dynamic tab based on conditions. Only one appears at the end.
+    let dynamicTab: { label: string; href: string } | null = null;
+    if (showHelpRequests) {
+        dynamicTab = { label: "Help Requests", href: "/help-request" };
+    } else if (showReportsTab) {
+        dynamicTab = { label: "Reports", href: "/reports" };
+    }
+    const finalTabs = dynamicTab ? [...TABS, dynamicTab] : TABS;
 
     // Close mobile menu when clicking outside
     useEffect(() => {
@@ -133,15 +146,20 @@ export default function Navbar() {
         }
     };
 
-    // Handle PDF upload submission with size validation (10 MB max)
+    // Handle PDF upload submission with size & duplicate name validation (10 MB max)
     const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!selectedFile) {
             toast.error("Please select a PDF file before uploading.");
             return;
         }
+        // Check for duplicate file name
+        if (lastUploadedFileName && selectedFile.name === lastUploadedFileName) {
+            toast.error("Duplicate file upload is not allowed. Please select a different file.");
+            return;
+        }
         // Validate file size (10 MB maximum)
-        const maxSize = 10 * 1024 * 1024; // 10 MB in bytes
+        const maxSize = 10 * 1024 * 1024;
         if (selectedFile.size > maxSize) {
             setShowReportDialog(false);
             toast.error("The file is too large. It cannot be greater than 10 MB.");
@@ -151,11 +169,11 @@ export default function Navbar() {
         const formData = new FormData();
         formData.append("pdf", selectedFile);
         try {
-            // Upload endpoint changed to http://localhost:8081/api/reports/upload
             await axios.post("http://localhost:8081/api/reports/upload", formData, {
                 headers: { "Content-Type": "multipart/form-data" },
             });
             toast.success("Report uploaded successfully!");
+            setLastUploadedFileName(selectedFile.name);
             setSelectedFile(null);
             setShowReportDialog(false);
         } catch (error) {
