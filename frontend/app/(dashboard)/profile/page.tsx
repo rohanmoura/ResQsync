@@ -78,6 +78,10 @@ function ProfileCard() {
     const [openVolunteerEdit, setOpenVolunteerEdit] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
 
+    // Determine if the user is a volunteer and/or a help requester.
+    const isVolunteer = userProfile.roles.includes("VOLUNTEER");
+    const isHelpRequester = userProfile.roles.includes("HELPREQUESTER");
+
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
@@ -312,6 +316,27 @@ function ProfileCard() {
         router.push("/");
     };
 
+    // New function to delete help requests for help requester role.
+    const handleDeleteHelpRequests = async () => {
+        try {
+            const token = localStorage.getItem("jwtToken");
+            if (!token) {
+                router.push("/");
+                return;
+            }
+            await axios.delete("http://localhost:8081/api/help-requests/deletehelprequestorrole", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            toast("Help requests deleted", {
+                description: "Your help requests have been deleted successfully.",
+            });
+            router.refresh();
+        } catch (error) {
+            console.error("Error deleting help requests:", error);
+            toast.error("Failed to delete help requests");
+        }
+    };
+
     const resolvedAvatarUrl = userProfile.profilePicture
         ? userProfile.profilePicture.startsWith("http") || userProfile.profilePicture.startsWith("blob:")
             ? userProfile.profilePicture
@@ -326,8 +351,6 @@ function ProfileCard() {
         userProfile.name && userProfile.name.trim() !== ""
             ? userProfile.name.charAt(0).toUpperCase()
             : userProfile.email.charAt(0).toUpperCase();
-
-    const isVolunteer = userProfile.roles.includes("VOLUNTEER");
 
     return (
         <TooltipProvider>
@@ -399,7 +422,8 @@ function ProfileCard() {
                             </DialogContent>
                         </Dialog>
 
-                        {isVolunteer &&
+                        {/* Render volunteer edit dialog only if the user is a volunteer and not a help requester */}
+                        {isVolunteer && !isHelpRequester &&
                             ((userProfile.volunteeringTypes.length > 0) ||
                                 (userProfile.skills.length > 0) ||
                                 (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -420,7 +444,8 @@ function ProfileCard() {
                                         <DialogClose className="absolute right-4 top-4 text-muted-foreground" />
                                     </DialogContent>
                                 </Dialog>
-                            )}
+                            )
+                        }
 
                         <AlertDialog open={openDeleteDialog} onOpenChange={setOpenDeleteDialog}>
                             <AlertDialogTrigger asChild>
@@ -486,7 +511,8 @@ function ProfileCard() {
                                         )}
                                     </div>
                                 )}
-                                {isVolunteer &&
+                                {/* Render volunteer details only if the user is a volunteer and not a help requester */}
+                                {isVolunteer && !isHelpRequester &&
                                     ((userProfile.volunteeringTypes.length > 0) ||
                                         (userProfile.skills.length > 0) ||
                                         (userProfile.about && userProfile.about.trim() !== "")) && (
@@ -556,6 +582,16 @@ function ProfileCard() {
                                     onCheckedChange={handleDarkModeToggle}
                                 />
                             </div>
+                            {/* Render the delete help requests button if the user is a help requester */}
+                            {isHelpRequester && (
+                                <Button
+                                    variant="secondary"
+                                    className="w-full"
+                                    onClick={handleDeleteHelpRequests}
+                                >
+                                    Delete Help Requests
+                                </Button>
+                            )}
                             <Button
                                 variant="destructive"
                                 className="w-full"
