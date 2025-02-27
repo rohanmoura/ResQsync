@@ -40,6 +40,33 @@ const ReportsPage = () => {
             .finally(() => setLoading(false));
     }, [router]);
 
+    // New function for downloading a report using the provided endpoint
+    const handleDownload = async (report: any) => {
+        const token = localStorage.getItem("jwtToken");
+        if (!token) {
+            router.push("/signin");
+            return;
+        }
+        try {
+            const response = await axios.get(`http://localhost:8081/api/reports/download/${report.id}`, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": `Bearer ${token}`,
+                },
+                responseType: "blob", // necessary for binary data
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", report.fileName);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        } catch (error) {
+            console.error("Error downloading report:", error);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex min-h-screen items-center justify-center">
@@ -61,7 +88,7 @@ const ReportsPage = () => {
             ) : (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {reports.map((report) => {
-                        // Encode the URL so that spaces and special characters are handled
+                        // The "Open" button uses the existing reportDataUrl
                         const fileUrl = encodeURI(report.reportDataUrl);
                         return (
                             <Card key={report.id} className="border border-border shadow-md rounded-lg">
@@ -72,11 +99,9 @@ const ReportsPage = () => {
                                     <p className="text-sm text-muted-foreground">Report ID: {report.id}</p>
                                 </CardContent>
                                 <CardFooter className="flex justify-between">
-                                    <a href={fileUrl} download={report.fileName} target="_blank" rel="noopener noreferrer">
-                                        <Button variant="outline" size="sm">
-                                            Download
-                                        </Button>
-                                    </a>
+                                    <Button variant="outline" size="sm" onClick={() => handleDownload(report)}>
+                                        Download
+                                    </Button>
                                     <Button
                                         variant="ghost"
                                         size="sm"
