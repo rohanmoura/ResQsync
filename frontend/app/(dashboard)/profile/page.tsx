@@ -166,6 +166,7 @@ function ProfileCard() {
             toast.error("Failed to update profile");
         }
     };
+
     const handleVolunteerSave = async (data: any) => {
         try {
             const token = localStorage.getItem("jwtToken");
@@ -174,7 +175,7 @@ function ProfileCard() {
                 return;
             }
 
-            // ✅ Cleaner function to remove unwanted prefixes
+            // Clean volunteer types to remove unwanted prefixes
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 let cleaned: string[] = [];
@@ -203,44 +204,47 @@ function ProfileCard() {
                 return Array.from(new Set(cleaned)); // Remove duplicates
             };
 
-            // ✅ Apply the cleaner function
             const cleanedVolunteerTypes: string[] = cleanVolunteerTypes(data.volunteeringTypes);
             const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
             const cleanedAbout: string = data.about?.trim() || "";
 
-            // 🚀 Ensure form isn't submitted with empty values
+            // If all volunteer fields are empty, simply close the form and show a toast
             if (cleanedVolunteerTypes.length === 0 && cleanedSkills.length === 0 && cleanedAbout === "") {
-                toast.error("Volunteer details cannot be empty.");
+                toast("No volunteer details provided. Nothing to update.");
                 setOpenVolunteerEdit(false);
                 return;
             }
 
-            // 🚀 Check if data has changed before making API call
+            // Check if any changes have been made
             if (
                 JSON.stringify(userProfile.volunteeringTypes) === JSON.stringify(cleanedVolunteerTypes) &&
                 JSON.stringify(userProfile.skills) === JSON.stringify(cleanedSkills) &&
                 userProfile.about === cleanedAbout
             ) {
-                toast.success("No changes detected", {
+                toast("No changes detected", {
                     description: "Your volunteer details are already up to date.",
                 });
                 setOpenVolunteerEdit(false);
                 return;
             }
 
-            // 🚀 API Call Only If Changes Exist
-            await axios.post("http://localhost:8081/api/volunteers/update", {
-                volunteeringTypes: cleanedVolunteerTypes,
-                skills: cleanedSkills,
-                about: cleanedAbout,
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "application/json",
+            // API Call Only If Changes Exist
+            await axios.post(
+                "http://localhost:8081/api/volunteers/update",
+                {
+                    volunteeringTypes: cleanedVolunteerTypes,
+                    skills: cleanedSkills,
+                    about: cleanedAbout,
                 },
-            });
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
 
-            // ✅ Ensure state update happens without type errors
+            // Update state with new volunteer details
             setUserProfile((prev) => ({
                 ...prev,
                 volunteeringTypes: [...cleanedVolunteerTypes],
@@ -248,7 +252,7 @@ function ProfileCard() {
                 about: cleanedAbout,
             }));
 
-            toast.success("Volunteer profile updated", {
+            toast("Volunteer profile updated", {
                 description: "Your volunteer details have been updated successfully.",
             });
             setOpenVolunteerEdit(false);
@@ -257,10 +261,6 @@ function ProfileCard() {
             toast.error("Failed to update volunteer details. Please try again.");
         }
     };
-
-
-
-
 
     const handleDeleteAccount = async () => {
         try {
@@ -491,18 +491,7 @@ function ProfileCard() {
                                                 <>
                                                     <div className="font-medium text-gray-700">Volunteer Types:</div>
                                                     <div className="text-gray-700">
-                                                        {userProfile.volunteeringTypes
-                                                            .flatMap((typeEntry) => {
-                                                                let cleaned = typeEntry.replace(/^\[|\]$/g, "");
-                                                                let splitted = cleaned.split(",");
-                                                                return splitted.map((s) =>
-                                                                    s
-                                                                        .trim()
-                                                                        .replace("VolunterrTypes.", "")
-                                                                        .replace(/_/g, " ")
-                                                                );
-                                                            })
-                                                            .join(", ")}
+                                                        {userProfile.volunteeringTypes.join(", ")}
                                                     </div>
                                                 </>
                                             )}
@@ -518,7 +507,6 @@ function ProfileCard() {
                                                     <div className="text-gray-700">{userProfile.about}</div>
                                                 </>
                                             )}
-
                                         </div>
                                     )}
                             </div>
