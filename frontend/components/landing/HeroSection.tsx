@@ -60,6 +60,8 @@ export default function HeroSection() {
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
+  const [hospitalDialogOpen, setHospitalDialogOpen] = useState(false);
+
 
   const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
@@ -157,6 +159,32 @@ export default function HeroSection() {
     }
     setVolunteerDialogOpen(true);
   };
+
+  const handleHospitalButtonClick = () => {
+    if (!isAuthenticated) {
+      toast("Authentication Required", {
+        description: "To view hospital info, please sign up first.",
+        action: {
+          label: "Sign Up",
+          onClick: () => router.push("/signup"),
+        },
+      });
+      return;
+    }
+    if (!userProfile) {
+      toast.error("Loading profile. Please wait...");
+      return;
+    }
+    const missing = getMissingFields(userProfile);
+    if (missing.length > 0) {
+      toast.error(
+        `Please fill your ${missing.join(", ")} details before accessing hospital information.`
+      );
+      return;
+    }
+    setHospitalDialogOpen(true);
+  };
+
 
   const handleDeleteVolunteer = async () => {
     const token = localStorage.getItem("jwtToken");
@@ -381,6 +409,24 @@ export default function HeroSection() {
           <ActionDropdown actions={dropdownActions} triggerLabel="Choose Your Role" />
         </div>
       </div>
+
+      <Dialog open={hospitalDialogOpen} onOpenChange={setHospitalDialogOpen}>
+        <DialogContent className="w-full max-w-lg bg-white dark:bg-zinc-900 p-6 max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-900 dark:text-white">
+              Hospital
+            </DialogTitle>
+            <DialogDescription className="text-zinc-600 dark:text-zinc-400">
+              Hospital
+            </DialogDescription>
+          </DialogHeader>
+          <div className="text-center mt-4">
+            {/* You can expand this area as needed */}
+            Hospital
+          </div>
+          <DialogClose />
+        </DialogContent>
+      </Dialog>
 
 
       {/* Get Help Dialog */}
