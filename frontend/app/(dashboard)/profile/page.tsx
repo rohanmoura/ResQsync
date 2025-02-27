@@ -174,117 +174,54 @@ function ProfileCard() {
                 return;
             }
 
-            // Function to clean volunteer types from input (removing extra brackets, prefixes, etc.)
-            const cleanVolunteerTypes = (types: any): string[] => {
-                if (!types) return [];
-                let cleaned: string[] = [];
-                if (Array.isArray(types)) {
-                    types.forEach((t: string) => {
-                        let val = t.trim();
-                        if (val.startsWith("[")) {
-                            val = val.substring(1);
-                        }
-                        if (val.endsWith("]")) {
-                            val = val.substring(0, val.length - 1);
-                        }
-                        if (val.includes(",")) {
-                            val.split(",").forEach((part) => {
-                                let cleanPart = part.trim();
-                                if (cleanPart.startsWith("VolunterrTypes.")) {
-                                    cleanPart = cleanPart.replace("VolunterrTypes.", "");
-                                }
-                                cleaned.push(cleanPart);
-                            });
-                        } else {
-                            if (val.startsWith("VolunterrTypes.")) {
-                                val = val.replace("VolunterrTypes.", "");
-                            }
-                            cleaned.push(val);
-                        }
-                    });
-                }
-                return Array.from(new Set(cleaned));
-            };
+            const cleanedVolunteerTypes: string[] = Array.from(new Set(data.volunteeringTypes || []));
+            const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
+            const cleanedAbout: string = data.about?.trim() || "";
 
-            // Always use the data provided (even if blank)
-            const cleanedVolunteerTypes = cleanVolunteerTypes(data.volunteeringTypes);
-            const cleanedSkills = data.skills ? Array.from(new Set(data.skills as string[])) : [];
-            const cleanedAbout = data.about !== undefined ? data.about : "";
+            // 🚀 Check if data has changed
+            if (
+                JSON.stringify(userProfile.volunteeringTypes) === JSON.stringify(cleanedVolunteerTypes) &&
+                JSON.stringify(userProfile.skills) === JSON.stringify(cleanedSkills) &&
+                userProfile.about === cleanedAbout
+            ) {
+                toast.success("No changes detected", {
+                    description: "Your volunteer details are already up to date.",
+                });
+                setOpenVolunteerEdit(false);
+                return;
+            }
 
-            // Construct the payload as per volunteer creation format
-            const payload = {
+            // 🚀 API Call Only If Changes Exist
+            await axios.post("http://localhost:8081/api/volunteers/update", {
                 volunteeringTypes: cleanedVolunteerTypes,
                 skills: cleanedSkills,
                 about: cleanedAbout,
-            };
-
-            console.log("The payload is: ", payload);
-// Insert this right after `console.log("The payload is: ", payload);`
-if (
-    (
-      JSON.stringify(userProfile.volunteeringTypes) === JSON.stringify(cleanedVolunteerTypes) &&
-      JSON.stringify(userProfile.skills) === JSON.stringify(cleanedSkills) &&
-      userProfile.about === cleanedAbout
-    ) || 
-    (
-      cleanedVolunteerTypes.length === 0 &&
-      cleanedSkills.length === 0 &&
-      cleanedAbout.trim() === ""
-    )
-) {
-    toast.success("Volunteer profile updated", {
-        description: "Your volunteer details have been updated successfully.",
-    });
-    setOpenVolunteerEdit(false);
-    return;
-}
-
-
-
-            await axios.post("http://localhost:8081/api/volunteers/update", payload, {
+            }, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                     "Content-Type": "application/json",
                 },
             });
 
-            // Update local state with new values (even if blank)
+            // ✅ Update local state
             setUserProfile((prev) => ({
                 ...prev,
-                volunteeringTypes: payload.volunteeringTypes,
-                skills: payload.skills,
-                about: payload.about,
+                volunteeringTypes: cleanedVolunteerTypes,
+                skills: cleanedSkills,
+                about: cleanedAbout,
             }));
 
             toast.success("Volunteer profile updated", {
                 description: "Your volunteer details have been updated successfully.",
             });
             setOpenVolunteerEdit(false);
-        } catch (error: any) {
-            // If the user submitted all blank values, ignore the error and close the form.
-            if (
-                Array.isArray(data.volunteeringTypes) &&
-                data.volunteeringTypes.length === 0 &&
-                (!data.skills || data.skills.length === 0) &&
-                (!data.about || data.about.trim() === "")
-            ) {
-                setUserProfile((prev) => ({
-                    ...prev,
-                    volunteeringTypes: [],
-                    skills: [],
-                    about: "",
-                }));
-                toast.success("Volunteer profile updated", {
-                    description: "Your volunteer details have been updated successfully.",
-                });
-                setOpenVolunteerEdit(false);
-                return;
-            }
+        } catch (error) {
             console.error("Error updating volunteer profile:", error);
-            console.error(error.response?.data);
             toast.error("Failed to update volunteer details. Please try again.");
         }
     };
+
+
 
 
 

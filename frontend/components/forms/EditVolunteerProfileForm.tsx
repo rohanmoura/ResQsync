@@ -67,13 +67,15 @@ export function EditVolunteerProfileForm({
     const [localSkills, setLocalSkills] = useState<string[]>(Array.from(new Set(userProfile.skills || [])));
 
     useEffect(() => {
-        form.reset({
-            volunteeringTypes: userProfile.volunteeringTypes || [],
-            skills: userProfile.skills || [],
-            about: userProfile.about || "",
-        });
-        setLocalSkills(Array.from(new Set(userProfile.skills || [])));
-    }, [userProfile, form]);
+        if (userProfile) { // Ensure userProfile is available
+            form.reset({
+                volunteeringTypes: userProfile.volunteeringTypes || [],
+                skills: userProfile.skills || [],
+                about: userProfile.about || "",
+            });
+            setLocalSkills(Array.from(new Set(userProfile.skills || [])));
+        }
+    }, [userProfile, form]); // Dependency array ensures it updates on first open
 
     const onSubmit = (values: FormValues) => {
         onSaveProfile({ ...values, skills: localSkills });
