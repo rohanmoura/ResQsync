@@ -24,7 +24,7 @@ public class NotificationService {
     public SseEmitter subscribe(String email) {
         SseEmitter emitter = new SseEmitter(3600000L); // 1 hour timeout
         sseEmitters.put(email, emitter);
-
+        System.out.println("The user : " + email + " has been subscribed");
         emitter.onCompletion(() -> {
             sseEmitters.remove(email); /// Removes the emitter from the map when the connection is closed.
         });

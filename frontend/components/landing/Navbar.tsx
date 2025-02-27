@@ -77,7 +77,10 @@ export default function Navbar() {
     }, [router]);
 
     // If user has both "USER" and "VOLUNTEER" roles, show Help Requests & notifications
-    const showHelpRequests = user?.roles?.includes("USER") && user?.roles?.includes("VOLUNTEER");
+   // Show Help Requests & notifications if user has "USER" role and either "VOLUNTEER" or "HELPREQUESTER" role
+const showHelpRequests =
+user?.roles?.includes("USER") &&
+(user?.roles?.includes("VOLUNTEER") || user?.roles?.includes("HELPREQUESTER"));
     const finalTabs = showHelpRequests
         ? [...TABS, { label: "Help Requests", href: "/help-request" }]
         : TABS;

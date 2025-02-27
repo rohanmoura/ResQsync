@@ -39,6 +39,7 @@ export default function SignUpPage() {
             });
 
             showAccountCreatedToast()
+            router.push("/signin")
             // Agar response successful hai to aap yahan se koi additional process kar sakte hain
         } catch (err: any) {
             console.error("Sign up error: ", err);

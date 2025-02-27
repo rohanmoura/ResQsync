@@ -60,7 +60,8 @@ export default function HeroSection() {
   const [isVolunteerSubmitting, setIsVolunteerSubmitting] = useState(false);
   const [isGetHelpSubmitting, setIsGetHelpSubmitting] = useState(false);
   const [isVolunteerDeleting, setIsVolunteerDeleting] = useState(false);
-  const [isHelpRequestDeleting, setIsHelpRequestDeleting] = useState(false);
+  // Removed: isHelpRequestDeleting state since deletion functionality is removed.
+  // const [isHelpRequestDeleting, setIsHelpRequestDeleting] = useState(false);
 
   // Helper: Check which required fields are missing
   const getMissingFields = (profile: UserProfile) => {
@@ -197,35 +198,6 @@ export default function HeroSection() {
     }
   };
 
-  // Delete Help Request handler with loading indicator and email parameter
-  const handleDeleteHelpRequest = async () => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      toast("Authentication Required", {
-        description: "Please sign in first.",
-      });
-      return;
-    }
-    setIsHelpRequestDeleting(true);
-    try {
-      await axios.delete("http://localhost:8081/api/help-requests/delete", {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { email: userProfile?.email },
-      });
-      toast.success("Help request deleted successfully!");
-      if (userProfile?.roles) {
-        setUserProfile({
-          ...userProfile,
-          roles: userProfile.roles.filter((role) => role !== "HELPREQUESTER"),
-        });
-      }
-      window.location.reload();
-    } catch (error) {
-      toast.error("Failed to remove help request. Please try again.");
-    } finally {
-      setIsHelpRequestDeleting(false);
-    }
-  };
 
   // Helper function to immediately subscribe to notifications via SSE.
   const subscribeToNotifications = (email: string) => {
@@ -269,12 +241,18 @@ export default function HeroSection() {
       setGetHelpDialogOpen(false);
       setHelpType("");
       setHelpDescription("");
+      // Reload landing page only on the first successful help request submission
+      if (!sessionStorage.getItem("helpRequestReloaded")) {
+        sessionStorage.setItem("helpRequestReloaded", "true");
+        window.location.reload();
+      }
     } catch (error) {
       toast.error("Failed to submit help request. Please try again.");
     } finally {
       setIsGetHelpSubmitting(false);
     }
   };
+  
 
   // Volunteer submission handler: after successful creation, immediately subscribe to notifications if roles include "VOLUNTEER", then reload.
   const handleVolunteerSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -394,33 +372,29 @@ export default function HeroSection() {
           {/* Updated Get Help / Delete Request Button */}
           <Button
             size="sm"
-            className={
-              `w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 ` +
-              (isHelpRequester ? "px-8" : "px-6") +
-              ` py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse`
-            }
-            onClick={isHelpRequester ? handleDeleteHelpRequest : handleGetHelpButtonClick}
-            disabled={isHelpRequester ? isHelpRequestDeleting : false}
+            className="w-fit bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white hover:opacity-90 px-8 py-3 font-medium transition-all rounded-lg shadow-lg animate-pulse"
+            onClick={handleGetHelpButtonClick}
           >
-            {isHelpRequester
-              ? isHelpRequestDeleting
-                ? "Deleting..."
-                : "Delete Request"
-              : "Get Help"}
+            Get help
           </Button>
           <Button
-            size="sm"
-            variant="outline"
-            className={`w-fit ${isVolunteer ? "px-8" : "px-6"} py-3 text-black border-2 border-black dark:bg-black dark:text-white dark:border-white hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black transition-all rounded-lg shadow-lg animate-bounce`}
-            onClick={isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick}
-            disabled={isVolunteer ? isVolunteerDeleting : false}
-          >
-            {isVolunteer
-              ? isVolunteerDeleting
-                ? "Deleting..."
-                : "Delete Volunteer"
-              : "Volunteer"}
-          </Button>
+  size="sm"
+  variant="outline"
+  className={`w-fit ${isVolunteer ? "px-8" : "px-6"} py-3 text-black border-2 border-black dark:bg-black dark:text-white dark:border-white transition-all rounded-lg shadow-lg ${
+    isHelpRequester
+      ? "opacity-50 cursor-not-allowed"
+      : "hover:bg-gray-200 hover:text-black dark:hover:bg-white dark:hover:text-black animate-bounce"
+  }`}
+  onClick={isVolunteer ? handleDeleteVolunteer : handleVolunteerButtonClick}
+  disabled={isVolunteer ? isVolunteerDeleting : false}
+>
+  {isVolunteer
+    ? isVolunteerDeleting
+      ? "Deleting..."
+      : "Delete Volunteer"
+    : "Volunteer"}
+</Button>
+
         </div>
       </div>
 
