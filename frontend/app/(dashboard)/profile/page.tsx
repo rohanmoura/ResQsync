@@ -179,7 +179,6 @@ function ProfileCard() {
             const cleanVolunteerTypes = (types: any): string[] => {
                 if (!types) return [];
                 let cleaned: string[] = [];
-
                 if (Array.isArray(types)) {
                     types.forEach((t: string) => {
                         let val = t.trim();
@@ -201,14 +200,14 @@ function ProfileCard() {
                         }
                     });
                 }
-                return Array.from(new Set(cleaned)); // Remove duplicates
+                return Array.from(new Set(cleaned));
             };
 
             const cleanedVolunteerTypes: string[] = cleanVolunteerTypes(data.volunteeringTypes);
             const cleanedSkills: string[] = Array.from(new Set(data.skills || []));
             const cleanedAbout: string = data.about?.trim() || "";
 
-            // If all volunteer fields are empty, simply close the form and show a toast
+            // If all volunteer fields are empty, do not call API. Just close form and show toast.
             if (cleanedVolunteerTypes.length === 0 && cleanedSkills.length === 0 && cleanedAbout === "") {
                 toast("No volunteer details provided. Nothing to update.");
                 setOpenVolunteerEdit(false);
@@ -228,7 +227,7 @@ function ProfileCard() {
                 return;
             }
 
-            // API Call Only If Changes Exist
+            // API call only if there are changes
             await axios.post(
                 "http://localhost:8081/api/volunteers/update",
                 {
@@ -491,7 +490,18 @@ function ProfileCard() {
                                                 <>
                                                     <div className="font-medium text-gray-700">Volunteer Types:</div>
                                                     <div className="text-gray-700">
-                                                        {userProfile.volunteeringTypes.join(", ")}
+                                                        {userProfile.volunteeringTypes
+                                                            .flatMap((typeEntry) => {
+                                                                let cleaned = typeEntry.replace(/^\[|\]$/g, "");
+                                                                let splitted = cleaned.split(",");
+                                                                return splitted.map((s) =>
+                                                                    s
+                                                                        .trim()
+                                                                        .replace("VolunterrTypes.", "")
+                                                                        .replace(/_/g, " ")
+                                                                );
+                                                            })
+                                                            .join(", ")}
                                                     </div>
                                                 </>
                                             )}
