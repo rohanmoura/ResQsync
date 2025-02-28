@@ -20,7 +20,6 @@ const ReportsPage = () => {
     useEffect(() => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
-            // Redirect unauthenticated users to the signin page.
             router.push("/signin");
             return;
         }
@@ -28,12 +27,16 @@ const ReportsPage = () => {
         axios
             .get("http://localhost:8081/api/reports", {
                 headers: {
-                    "Content-Type": "multipart/form-data",
+                    // "Content-Type" header is not required for GET requests.
                     "Authorization": `Bearer ${token}`,
                 },
             })
             .then((response) => {
-                setReports(response.data);
+                // Ensure that reportsData is an array.
+                const reportsData = Array.isArray(response.data)
+                    ? response.data
+                    : response.data.reports || [];
+                setReports(reportsData);
             })
             .catch((error) => {
                 console.error("Error fetching reports:", error);
@@ -41,8 +44,7 @@ const ReportsPage = () => {
             .finally(() => setLoading(false));
     }, [router]);
 
-    // New function for downloading a report using the provided endpoint
-
+    // Function for downloading a report.
     const downloadReport = async (report: any) => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
@@ -50,12 +52,15 @@ const ReportsPage = () => {
             return;
         }
         try {
-            const response = await axios.get(`http://localhost:8081/api/reports/download/${report.id}`, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                    "Authorization": `Bearer ${token}`,
-                },
-            });
+            const response = await axios.get(
+                `http://localhost:8081/api/reports/download/${report.id}`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${token}`,
+                    },
+                    responseType: "blob", // Ensure we get binary data
+                }
+            );
 
             // Extract filename from the Content-Disposition header if available.
             const disposition = response.headers["content-disposition"];
@@ -69,7 +74,9 @@ const ReportsPage = () => {
             }
 
             // Create a Blob from the response data.
-            const blob = new Blob([response.data], { type: response.headers["content-type"] || "application/octet-stream" });
+            const blob = new Blob([response.data], {
+                type: response.headers["content-type"] || "application/octet-stream",
+            });
             const url = window.URL.createObjectURL(blob);
 
             // Create a temporary anchor element and trigger the download.
@@ -87,8 +94,6 @@ const ReportsPage = () => {
             // Optionally, display an error message to the user.
         }
     };
-
-
 
     if (loading) {
         return (
@@ -111,7 +116,7 @@ const ReportsPage = () => {
             ) : (
                 <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                     {reports.map((report) => {
-                        // The "Open" button uses the existing reportDataUrl
+                        // The "Open" button uses the existing reportDataUrl.
                         const fileUrl = encodeURI(report.reportDataUrl);
                         return (
                             <Card key={report.id} className="border border-border shadow-md rounded-lg">
