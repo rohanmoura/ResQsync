@@ -45,7 +45,7 @@ export default function ManagerPage() {
                 const token = localStorage.getItem("jwtToken");
                 // Fetch volunteers
                 const volResponse = await axios.get("http://localhost:8081/api/manager/volunteers", {
-                    headers: { "Authorization": `Bearer ${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 const volunteersData = Array.isArray(volResponse.data)
                     ? volResponse.data
@@ -54,7 +54,7 @@ export default function ManagerPage() {
 
                 // Fetch hospitals
                 const hospResponse = await axios.get("http://localhost:8081/api/manager/hospitals", {
-                    headers: { "Authorization": `Bearer ${token}` },
+                    headers: { Authorization: `Bearer ${token}` },
                 });
                 const hospitalsData = Array.isArray(hospResponse.data)
                     ? hospResponse.data
@@ -79,7 +79,7 @@ export default function ManagerPage() {
         }
         try {
             await axios.post(`http://localhost:8081/api/manager/volunteers/verify/${encodeURIComponent(email)}`, {
-                headers: { "Authorization": `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
             });
             toast.success("Volunteer Verified!");
             console.log("Verified volunteer:", email);
@@ -97,7 +97,7 @@ export default function ManagerPage() {
         }
         try {
             await axios.post(`http://localhost:8081/api/manager/volunteers/unverify/${encodeURIComponent(email)}`, {
-                headers: { "Authorization": `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
             });
             toast.success("Volunteer Unverified!");
             console.log("Unverified volunteer:", email);
@@ -116,7 +116,7 @@ export default function ManagerPage() {
         }
         try {
             await axios.post(`http://localhost:8081/api/manager/hospitals/verify/${encodeURIComponent(officialEmail)}`, {
-                headers: { "Authorization": `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${token}` },
             });
             // await axios.post(http://localhost:8081/api/manager/volunteers/verify/${volunteer.email}, {}, {
             //     headers: { "Authorization": Bearer ${token} },
