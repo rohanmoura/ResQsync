@@ -1,548 +1,374 @@
 "use client";
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useState, useRef, FormEvent, ChangeEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { ModeToggle } from "./ToogleMode";
+import { AnimatedBackground } from "@/components/core/animated-background";
+import { GlowEffect } from "@/components/core/glow-effect";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { useRouter } from "next/navigation";
+import axios from "axios";
+import { Bell, FilePlus } from "lucide-react";
+import { toast } from "sonner";
 
-// Volunteer data type
-type VolunteerProfileDto = {
-    email: string;
-    name: string;
-    phone: string;
-    area: string;
-    bio: string;
-    profilePicture: string; // Base64 string
-    roles: string[];
-    helpRequests: any[];
-    volunteeringTypes?: string[]; // Optional to avoid errors
-    skills?: string[];          // Optional for safe-checking
-    about: string;
-};
+// Shadcn UI Tooltip imports
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "../ui/tooltip";
 
-// Hospital data type (based on your backend)
-type HospitalInfoDto = {
-    registrationNumber: string;
-    hospitalName: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    officialEmail: string;
-    phone: string;
-    website: string;
-    verified: boolean;
-};
+// Dialog components for report submission
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogDescription,
+    DialogClose,
+} from "@/components/ui/dialog";
 
-export default function ManagerPage() {
-    const [volunteers, setVolunteers] = useState<VolunteerProfileDto[]>([]);
-    const [hospitals, setHospitals] = useState<HospitalInfoDto[]>([]);
-    const [loading, setLoading] = useState(true);
+export default function Navbar() {
+    const [user, setUser] = useState<{ name: string; profilePicture?: string; roles?: string[] } | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const [lastUploadedFileName, setLastUploadedFileName] = useState<string | null>(null);
+    const router = useRouter();
+    const mobileMenuRef = useRef<HTMLDivElement>(null);
+
+    // Base TABS for navigation
+    const TABS = [
+        { label: "About Us", href: "#about" },
+        { label: "Solutions", href: "#solutions" },
+        { label: "Process", href: "#process" },
+        { label: "Hospital Data", href: "/hospital-data" },
+        { label: "News Data", href: "/news-data" },
+    ];
 
     useEffect(() => {
-        async function fetchData() {
-            try {
-                const token = localStorage.getItem("jwtToken");
-                // First, get the manager's profile to retrieve the email.
-                const userResponse = await axios.get("http://localhost:8081/api/user/profile", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const managerEmail = userResponse.data.email;
+        async function checkAuthStatus() {
+            const token = localStorage.getItem("jwtToken");
+            const exp = localStorage.getItem("jwtExp");
 
-                // Fetch volunteers using the manager's email as query parameter.
-                const volResponse = await axios.get(
-                    `http://localhost:8081/api/manager/volunteers?email=${encodeURIComponent(managerEmail)}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const volunteersData = Array.isArray(volResponse.data)
-                    ? volResponse.data
-                    : volResponse.data.volunteers || [];
-                setVolunteers(volunteersData);
-
-                // Fetch hospitals using the manager's email as query parameter.
-                const hospResponse = await axios.get(
-                    `http://localhost:8081/api/manager/hospitals?email=${encodeURIComponent(managerEmail)}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const hospitalsData = Array.isArray(hospResponse.data)
-                    ? hospResponse.data
-                    : hospResponse.data.hospitals || [];
-                setHospitals(hospitalsData);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                toast.error("Failed to load manager data.");
-            } finally {
-                setLoading(false);
+            if (token && exp) {
+                const now = Math.floor(Date.now() / 1000);
+                if (now > parseInt(exp)) {
+                    console.log("Token expired! Logging out...");
+                    localStorage.removeItem("jwtToken");
+                    localStorage.removeItem("jwtExp");
+                    setIsAuthenticated(false);
+                    setUser(null);
+                    router.push("/");
+                } else {
+                    setIsAuthenticated(true);
+                    try {
+                        const response = await axios.get("http://localhost:8081/api/user/profile", {
+                            headers: { Authorization: `Bearer ${token}` },
+                        });
+                        if (response.data) {
+                            setUser({
+                                name: response.data.name || "User",
+                                profilePicture: response.data.profilePicture || "",
+                                roles: response.data.roles || [],
+                            });
+                        }
+                    } catch (error) {
+                        console.error("Error fetching profile:", error);
+                        setUser({ name: "User", profilePicture: "", roles: [] });
+                    }
+                }
+            } else {
+                setIsAuthenticated(false);
+                setUser(null);
             }
         }
-        fetchData();
-    }, []);
+        checkAuthStatus();
+    }, [router]);
 
-    // Volunteer Verification Functions
-    const handleVolunteerVerify = async (email: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
-        }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/volunteers/verify?email=${encodeURIComponent(email)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Volunteer Verified!");
-            console.log("Verified volunteer:", email);
-        } catch (error) {
-            console.error("Error verifying volunteer:", error);
-            toast.error("Volunteer verification failed");
-        }
-    };
+    // Condition for Help Requests tab: shown when user has role USER along with VOLUNTEER or HELPREQUESTER
+    const showHelpRequests =
+        user?.roles?.includes("USER") &&
+        (user?.roles?.includes("VOLUNTEER") || user?.roles?.includes("HELPREQUESTER"));
 
-    const handleVolunteerNonVerify = async (email: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
-        }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/volunteers/unverify?email=${encodeURIComponent(email)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Volunteer Unverified!");
-            console.log("Unverified volunteer:", email);
-        } catch (error) {
-            console.error("Error unverifying volunteer:", error);
-            toast.error("Volunteer unverification failed");
-        }
-    };
+    // Condition for Reports tab: shown when user has role USER and either HOSPITAL or (only USER without VOLUNTEER/HELPREQUESTER)
+    const showReportsTab =
+        user?.roles?.includes("USER") &&
+        (user?.roles?.includes("HOSPITAL") ||
+            (!user?.roles?.includes("VOLUNTEER") && !user?.roles?.includes("HELPREQUESTER")));
 
-    // Hospital Verification Functions
-    const handleHospitalVerify = async (officialEmail: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
-        }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/hospitals/verify?email=${encodeURIComponent(officialEmail)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Hospital Verified!");
-            console.log("Verified hospital:", officialEmail);
-        } catch (error) {
-            console.error("Error verifying hospital:", error);
-            toast.error("Hospital verification failed");
-        }
-    };
+    // New condition for Manager tab: shown when user has role USER and MANAGER
+    const showManagerTab =
+        user?.roles?.includes("USER") && user?.roles?.includes("MANAGER");
 
-    const handleHospitalNonVerify = async (officialEmail: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
-        }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/hospitals/unverify?email=${encodeURIComponent(officialEmail)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Hospital Unverified!");
-            console.log("Unverified hospital:", officialEmail);
-        } catch (error) {
-            console.error("Error unverifying hospital:", error);
-            toast.error("Hospital unverification failed");
-        }
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
+    // Build dynamic tabs based on conditions.
+    // If user is a Manager, add "Volunteer Req".
+    // Also, if the user has HOSPITAL role, add "Hospital Req" (both open the same page).
+    const dynamicTabs: { label: string; href: string }[] = [];
+    if (showManagerTab) {
+        dynamicTabs.push({ label: "Volunteer Req", href: "/manager" });
     }
+    if (user?.roles?.includes("MANAGER")) {
+        dynamicTabs.push({ label: "Hospital Req", href: "/manager" });
+    }
+    // Fallback to existing conditions if no dynamic tab was added.
+    if (dynamicTabs.length === 0) {
+        if (showHelpRequests) {
+            dynamicTabs.push({ label: "Help Requests", href: "/help-request" });
+        } else if (showReportsTab) {
+            dynamicTabs.push({ label: "Reports", href: "/reports" });
+        }
+    }
+    const finalTabs = [...TABS, ...dynamicTabs];
 
-    return (
-        <div className="p-6 space-y-10">
-            {/* Page Heading */}
-            <div className="text-center">
-                <h1 className="text-4xl font-bold text-foreground">Manager Page</h1>
-                <p className="mt-2 text-lg text-muted-foreground">
-                    Verification Dashboard for Volunteers and Hospitals
-                </p>
-            </div>
-
-            {/* Volunteer Cards Grid */}
-            <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-4">Volunteers</h2>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto"
-                    style={{ maxHeight: "60vh" }}
-                >
-                    {volunteers.map((volunteer, index) => {
-                        const volunteerTypesDisplay = volunteer.volunteeringTypes
-                            ? volunteer.volunteeringTypes.length > 1
-                                ? volunteer.volunteeringTypes.join(", ")
-                                : volunteer.volunteeringTypes[0]
-                            : "";
-                        const volunteerSkillsDisplay = volunteer.skills
-                            ? volunteer.skills.length > 1
-                                ? volunteer.skills.join(", ")
-                                : volunteer.skills[0]
-                            : "";
-                        return (
-                            <div
-                                key={`${volunteer.email}-${index}`}
-                                className="bg-card dark:bg-zinc-900 p-4 rounded-lg shadow border border-border"
-                            >
-                                <h3 className="text-xl font-semibold text-foreground">{volunteer.name}</h3>
-                                <p className="text-sm text-muted-foreground">{volunteer.email}</p>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">Volunteer Types:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteerTypesDisplay}</p>
-                                </div>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">Skills:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteerSkillsDisplay}</p>
-                                </div>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">About:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteer.about}</p>
-                                </div>
-                                <div className="mt-4 flex justify-between">
-                                    <Button variant="outline" onClick={() => handleVolunteerVerify(volunteer.email)}>
-                                        Verify
-                                    </Button>
-                                    <Button variant="destructive" onClick={() => handleVolunteerNonVerify(volunteer.email)}>
-                                        Non Verify
-                                    </Button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Hospital Cards Grid */}
-            <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-4">Hospitals</h2>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto"
-                    style={{ maxHeight: "60vh" }}
-                >
-                    {hospitals.map((hospital, index) => (
-                        <div
-                            key={`${hospital.officialEmail}-${index}`}
-                            className="bg-card dark:bg-zinc-900 p-4 rounded-lg shadow border border-border"
-                        >
-                            <h3 className="text-xl font-semibold text-foreground">{hospital.hospitalName}</h3>
-                            <p className="text-sm text-muted-foreground">{hospital.officialEmail}</p>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Address:</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {hospital.address}, {hospital.city}, {hospital.state}, {hospital.zipCode}
-                                </p>
-                            </div>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Phone:</p>
-                                <p className="text-sm text-muted-foreground">{hospital.phone}</p>
-                            </div>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Website:</p>
-                                <p className="text-sm text-muted-foreground">{hospital.website}</p>
-                            </div>
-                            <div className="mt-4 flex justify-between">
-                                <Button variant="outline" onClick={() => handleHospitalVerify(hospital.officialEmail)}>
-                                    Verify
-                                </Button>
-                                <Button variant="destructive" onClick={() => handleHospitalNonVerify(hospital.officialEmail)}>
-                                    Non Verify
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    );
-}
-"use client";
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-
-// Volunteer data type
-type VolunteerProfileDto = {
-    email: string;
-    name: string;
-    phone: string;
-    area: string;
-    bio: string;
-    profilePicture: string; // Base64 string
-    roles: string[];
-    helpRequests: any[];
-    volunteeringTypes?: string[]; // Optional to avoid errors
-    skills?: string[];          // Optional for safe-checking
-    about: string;
-};
-
-// Hospital data type (based on your backend)
-type HospitalInfoDto = {
-    registrationNumber: string;
-    hospitalName: string;
-    address: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    officialEmail: string;
-    phone: string;
-    website: string;
-    verified: boolean;
-};
-
-export default function ManagerPage() {
-    const [volunteers, setVolunteers] = useState<VolunteerProfileDto[]>([]);
-    const [hospitals, setHospitals] = useState<HospitalInfoDto[]>([]);
-    const [loading, setLoading] = useState(true);
-
+    // Close mobile menu when clicking outside
     useEffect(() => {
-        async function fetchData() {
-            try {
-                const token = localStorage.getItem("jwtToken");
-                // First, get the manager's profile to retrieve the email.
-                const userResponse = await axios.get("http://localhost:8081/api/user/profile", {
-                    headers: { Authorization: `Bearer ${token}` },
-                });
-                const managerEmail = userResponse.data.email;
-
-                // Fetch volunteers using the manager's email as query parameter.
-                const volResponse = await axios.get(
-                    `http://localhost:8081/api/manager/volunteers?email=${encodeURIComponent(managerEmail)}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const volunteersData = Array.isArray(volResponse.data)
-                    ? volResponse.data
-                    : volResponse.data.volunteers || [];
-                setVolunteers(volunteersData);
-
-                // Fetch hospitals using the manager's email as query parameter.
-                const hospResponse = await axios.get(
-                    `http://localhost:8081/api/manager/hospitals?email=${encodeURIComponent(managerEmail)}`,
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-                const hospitalsData = Array.isArray(hospResponse.data)
-                    ? hospResponse.data
-                    : hospResponse.data.hospitals || [];
-                setHospitals(hospitalsData);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                toast.error("Failed to load manager data.");
-            } finally {
-                setLoading(false);
+        function handleClickOutside(event: MouseEvent) {
+            if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+                setIsMenuOpen(false);
             }
         }
-        fetchData();
-    }, []);
-
-    // Volunteer Verification Functions
-    const handleVolunteerVerify = async (email: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
+        if (isMenuOpen) {
+            document.addEventListener("mousedown", handleClickOutside);
         }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/volunteers/verify?email=${encodeURIComponent(email)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Volunteer Verified!");
-            console.log("Verified volunteer:", email);
-        } catch (error) {
-            console.error("Error verifying volunteer:", error);
-            toast.error("Volunteer verification failed");
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [isMenuOpen]);
+
+    // Handle click for "Add Reports" icon
+    const handleAddReportClick = () => {
+        if (isAuthenticated) {
+            setShowReportDialog(true);
+        } else {
+            toast("Authentication Required", {
+                description: "If you want to add reports, you have to log in",
+                action: {
+                    label: "Signin",
+                    onClick: () => router.push("/signin"),
+                },
+            });
         }
     };
 
-    const handleVolunteerNonVerify = async (email: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
-            return;
-        }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/volunteers/unverify?email=${encodeURIComponent(email)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Volunteer Unverified!");
-            console.log("Unverified volunteer:", email);
-        } catch (error) {
-            console.error("Error unverifying volunteer:", error);
-            toast.error("Volunteer unverification failed");
+    // Handle file selection
+    const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            if (file.type === "application/pdf") {
+                setSelectedFile(file);
+            } else {
+                toast.error("Please select a valid PDF file.");
+            }
         }
     };
 
-    // Hospital Verification Functions
-    const handleHospitalVerify = async (officialEmail: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
+    // Handle PDF upload submission with size & duplicate name validation (10 MB max)
+    const handleUpload = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        if (!selectedFile) {
+            toast.error("Please select a PDF file before uploading.");
             return;
         }
-        try {
-            await axios.post(
-                `http://localhost:8081/api/manager/hospitals/verify?email=${encodeURIComponent(officialEmail)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Hospital Verified!");
-            console.log("Verified hospital:", officialEmail);
-        } catch (error) {
-            console.error("Error verifying hospital:", error);
-            toast.error("Hospital verification failed");
-        }
-    };
-
-    const handleHospitalNonVerify = async (officialEmail: string) => {
-        const token = localStorage.getItem("jwtToken");
-        if (!token) {
-            toast.error("Not authenticated");
+        // Check for duplicate file name
+        if (lastUploadedFileName && selectedFile.name === lastUploadedFileName) {
+            toast.error("Duplicate file upload is not allowed. Please select a different file.");
             return;
         }
+        // Validate file size (10 MB maximum)
+        const maxSize = 10 * 1024 * 1024;
+        if (selectedFile.size > maxSize) {
+            setShowReportDialog(false);
+            toast.error("The file is too large. It cannot be greater than 10 MB.");
+            return;
+        }
+        setIsUploading(true);
+        const formData = new FormData();
+        formData.append("pdf", selectedFile);
         try {
-            await axios.post(
-                `http://localhost:8081/api/manager/hospitals/unverify?email=${encodeURIComponent(officialEmail)}`,
-                {},
-                { headers: { Authorization: `Bearer ${token}` } }
-            );
-            toast.success("Hospital Unverified!");
-            console.log("Unverified hospital:", officialEmail);
+            const token = localStorage.getItem("jwtToken");
+            await axios.post("http://localhost:8081/api/reports/upload", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                    "Authorization": `Bearer ${token}`,
+                },
+            });
+            toast.success("Report uploaded successfully!");
+            setLastUploadedFileName(selectedFile.name);
+            setSelectedFile(null);
+            setShowReportDialog(false);
         } catch (error) {
-            console.error("Error unverifying hospital:", error);
-            toast.error("Hospital unverification failed");
+            console.error("Upload error:", error);
+            toast.error("Failed to upload report.");
+        } finally {
+            setIsUploading(false);
         }
     };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center min-h-screen">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            </div>
-        );
-    }
 
     return (
-        <div className="p-6 space-y-10">
-            {/* Page Heading */}
-            <div className="text-center">
-                <h1 className="text-4xl font-bold text-foreground">Manager Page</h1>
-                <p className="mt-2 text-lg text-muted-foreground">
-                    Verification Dashboard for Volunteers and Hospitals
-                </p>
-            </div>
+        <>
+            <nav className="fixed top-0 left-0 w-full z-50 bg-[hsl(var(--card))] shadow-md">
+                <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+                    {/* Logo */}
+                    <Link href="/" prefetch={false} className="text-xl font-bold text-primary">
+                        ResQSync
+                    </Link>
 
-            {/* Volunteer Cards Grid */}
-            <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-4">Volunteers</h2>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto"
-                    style={{ maxHeight: "60vh" }}
-                >
-                    {volunteers.map((volunteer, index) => {
-                        const volunteerTypesDisplay = volunteer.volunteeringTypes
-                            ? volunteer.volunteeringTypes.length > 1
-                                ? volunteer.volunteeringTypes.join(", ")
-                                : volunteer.volunteeringTypes[0]
-                            : "";
-                        const volunteerSkillsDisplay = volunteer.skills
-                            ? volunteer.skills.length > 1
-                                ? volunteer.skills.join(", ")
-                                : volunteer.skills[0]
-                            : "";
-                        return (
-                            <div
-                                key={`${volunteer.email}-${index}`}
-                                className="bg-card dark:bg-zinc-900 p-4 rounded-lg shadow border border-border"
-                            >
-                                <h3 className="text-xl font-semibold text-foreground">{volunteer.name}</h3>
-                                <p className="text-sm text-muted-foreground">{volunteer.email}</p>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">Volunteer Types:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteerTypesDisplay}</p>
-                                </div>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">Skills:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteerSkillsDisplay}</p>
-                                </div>
-                                <div className="mt-2">
-                                    <p className="font-medium text-foreground">About:</p>
-                                    <p className="text-sm text-muted-foreground">{volunteer.about}</p>
-                                </div>
-                                <div className="mt-4 flex justify-between">
-                                    <Button variant="outline" onClick={() => handleVolunteerVerify(volunteer.email)}>
-                                        Verify
-                                    </Button>
-                                    <Button variant="destructive" onClick={() => handleVolunteerNonVerify(volunteer.email)}>
-                                        Non Verify
-                                    </Button>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </div>
-
-            {/* Hospital Cards Grid */}
-            <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-4">Hospitals</h2>
-                <div
-                    className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto"
-                    style={{ maxHeight: "60vh" }}
-                >
-                    {hospitals.map((hospital, index) => (
-                        <div
-                            key={`${hospital.officialEmail}-${index}`}
-                            className="bg-card dark:bg-zinc-900 p-4 rounded-lg shadow border border-border"
+                    {/* Center: Navigation Menu */}
+                    <div className="hidden md:flex space-x-8 relative">
+                        <AnimatedBackground
+                            defaultValue={finalTabs[0].label}
+                            className="rounded-lg bg-zinc-100 dark:bg-zinc-800"
+                            transition={{ type: "spring", bounce: 0.2, duration: 0.3 }}
+                            enableHover
                         >
-                            <h3 className="text-xl font-semibold text-foreground">{hospital.hospitalName}</h3>
-                            <p className="text-sm text-muted-foreground">{hospital.officialEmail}</p>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Address:</p>
-                                <p className="text-sm text-muted-foreground">
-                                    {hospital.address}, {hospital.city}, {hospital.state}, {hospital.zipCode}
-                                </p>
-                            </div>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Phone:</p>
-                                <p className="text-sm text-muted-foreground">{hospital.phone}</p>
-                            </div>
-                            <div className="mt-2">
-                                <p className="font-medium text-foreground">Website:</p>
-                                <p className="text-sm text-muted-foreground">{hospital.website}</p>
-                            </div>
-                            <div className="mt-4 flex justify-between">
-                                <Button variant="outline" onClick={() => handleHospitalVerify(hospital.officialEmail)}>
-                                    Verify
-                                </Button>
-                                <Button variant="destructive" onClick={() => handleHospitalNonVerify(hospital.officialEmail)}>
-                                    Non Verify
-                                </Button>
-                            </div>
+                            {finalTabs.map((tab, index) => (
+                                <Link
+                                    key={index}
+                                    href={tab.href}
+                                    prefetch={tab.href.startsWith("#") ? false : undefined}
+                                    data-id={tab.label}
+                                    className="px-4 py-1.5 text-base font-medium text-foreground transition-colors duration-300 hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
+                                >
+                                    {tab.label}
+                                </Link>
+                            ))}
+                        </AnimatedBackground>
+                    </div>
+
+                    {/* Right side: Add Reports, Notifications, ModeToggle, Auth */}
+                    <div className="flex items-center space-x-7">
+                        {/* Add Reports Icon */}
+                        <TooltipProvider>
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={handleAddReportClick}
+                                        className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors"
+                                    >
+                                        <FilePlus className="w-5 h-5" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent>Add Reports</TooltipContent>
+                            </Tooltip>
+                        </TooltipProvider>
+
+                        {/* Notifications Icon (shown if help requests are available) */}
+                        {showHelpRequests && (
+                            <TooltipProvider>
+                                <Tooltip>
+                                    <TooltipTrigger asChild>
+                                        <button className="p-2 rounded-full hover:bg-indigo-500 hover:text-white transition-colors">
+                                            <Bell className="w-5 h-5" />
+                                        </button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>Notifications</TooltipContent>
+                                </Tooltip>
+                            </TooltipProvider>
+                        )}
+
+                        <ModeToggle />
+
+                        {/* Profile or Log In */}
+                        <div className="relative inline-block">
+                            <GlowEffect
+                                colors={["#6366F1", "#818CF8", "#A78BFA", "#C7D2FE"]}
+                                mode="colorShift"
+                                blur="medium"
+                                duration={2}
+                                scale={1.1}
+                            />
+                            {isAuthenticated ? (
+                                <Link href="/profile" passHref prefetch={false}>
+                                    <Avatar className="cursor-pointer border border-zinc-300 dark:border-zinc-700 hover:border-indigo-500 dark:hover:border-indigo-600 transition-all">
+                                        {user?.profilePicture ? (
+                                            <AvatarImage
+                                                src={`data:image/png;base64,${user.profilePicture}`}
+                                                alt="User Avatar"
+                                                onError={(e) => (e.currentTarget.src = "")}
+                                            />
+                                        ) : (
+                                            <AvatarFallback>{user?.name.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                                        )}
+                                    </Avatar>
+                                </Link>
+                            ) : (
+                                <Link href="/signin" passHref prefetch={false}>
+                                    <Button
+                                        variant="ghost"
+                                        className="relative inline-flex items-center gap-1 rounded-md px-4 py-2 font-semibold bg-transparent text-zinc-950 border border-zinc-300 dark:border-zinc-700 dark:text-zinc-50 hover:bg-indigo-500 hover:text-white hover:border-transparent dark:hover:bg-indigo-600 dark:hover:text-white dark:hover:border-transparent"
+                                    >
+                                        Log In
+                                    </Button>
+                                </Link>
+                            )}
                         </div>
-                    ))}
+                    </div>
+
+                    {/* Hamburger Menu for Mobile */}
+                    <div className="md:hidden">
+                        <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-primary focus:outline-none">
+                            ☰
+                        </button>
+                    </div>
                 </div>
-            </div>
-        </div>
+
+                {/* Mobile Dropdown Menu */}
+                {isMenuOpen && (
+                    <div
+                        ref={mobileMenuRef}
+                        className="absolute top-full left-0 w-full bg-[hsl(var(--card))] shadow-md mt-2 py-4 z-40"
+                    >
+                        {finalTabs.map((tab, index) => (
+                            <Link
+                                key={index}
+                                href={tab.href}
+                                prefetch={tab.href.startsWith("#") ? false : undefined}
+                                className="block px-4 py-2 text-base font-medium text-foreground hover:text-primary dark:text-zinc-400 dark:hover:text-zinc-50"
+                                onClick={() => setIsMenuOpen(false)}
+                            >
+                                {tab.label}
+                            </Link>
+                        ))}
+                    </div>
+                )}
+            </nav>
+
+            {/* Dialog for Adding Reports with PDF Uploader */}
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+                <DialogContent className="sm:max-w-[425px] rounded-lg p-6 bg-[hsl(var(--card))] shadow-lg">
+                    <DialogHeader>
+                        <DialogTitle className="text-primary font-bold">Add Report</DialogTitle>
+                        <DialogDescription className="text-muted text-sm">
+                            Please select and upload your PDF report (max 10 MB).
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUpload} className="mt-6 space-y-4">
+                        <label htmlFor="pdf-upload" className="block text-sm font-medium text-foreground">
+                            Choose PDF File
+                        </label>
+                        <input
+                            id="pdf-upload"
+                            type="file"
+                            accept="application/pdf"
+                            onChange={handleFileChange}
+                            className="block w-full text-sm text-foreground border border-border rounded-lg cursor-pointer bg-secondary p-2 focus:outline-none focus:ring-2 focus:ring-primary dark:bg-secondary dark:border-gray-600"
+                        />
+                        {selectedFile && (
+                            <p className="text-xs text-muted-foreground">
+                                Selected file: <span className="font-medium">{selectedFile.name}</span>
+                            </p>
+                        )}
+                        <div className="flex justify-end space-x-3 pt-2">
+                            <Button variant="outline" type="button" onClick={() => setShowReportDialog(false)}>
+                                Cancel
+                            </Button>
+                            <Button type="submit" disabled={!selectedFile || isUploading}>
+                                {isUploading ? "Uploading..." : "Upload"}
+                            </Button>
+                        </div>
+                    </form>
+                    <DialogClose className="absolute top-2 right-2 text-muted hover:text-foreground" />
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
