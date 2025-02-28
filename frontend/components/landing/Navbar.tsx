@@ -107,7 +107,7 @@ export default function Navbar() {
         dynamicTabs.push({ label: "Volunteer Req", href: "/manager" });
     }
     if (user?.roles?.includes("MANAGER")) {
-        dynamicTabs.push({ label: "Hospital Req", href: "/manager" });
+        dynamicTabs.push({ label: "Hospital Req", href: "/hospital-req" });
     }
     // Fallback to existing conditions if no dynamic tab was added.
     if (dynamicTabs.length === 0) {
