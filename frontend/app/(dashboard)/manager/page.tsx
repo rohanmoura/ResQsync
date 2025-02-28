@@ -32,6 +32,8 @@ export default function ManagerPage() {
                         "Authorization": `Bearer ${token}`,
                     },
                 });
+                console.log("Fetched volunteers:", response.data);
+
                 // Ensure that volunteersData is an array.
                 const volunteersData = Array.isArray(response.data)
                     ? response.data
