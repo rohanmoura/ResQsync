@@ -72,6 +72,7 @@ export default function HeroSection() {
   const [officialEmail, setOfficialEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [website, setWebsite] = useState("");
+  const [isHospitalSubmitting, setIsHospitalSubmitting] = useState(false);
 
   const getMissingFields = (profile: UserProfile) => {
     const missing: string[] = [];
@@ -339,18 +340,23 @@ export default function HeroSection() {
 
   const handleHospitalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log({
-      registrationNumber,
-      hospitalName,
-      address,
-      city,
-      state: stateField,
-      zipCode,
-      officialEmail,
-      phone,
-      website,
-    });
-    setHospitalDialogOpen(false);
+    setIsHospitalSubmitting(true);
+    // Simulate a submission delay
+    setTimeout(() => {
+      console.log({
+        registrationNumber,
+        hospitalName,
+        address,
+        city,
+        state: stateField,
+        zipCode,
+        officialEmail,
+        phone,
+        website,
+      });
+      setIsHospitalSubmitting(false);
+      setHospitalDialogOpen(false);
+    }, 1000);
   };
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -509,7 +515,9 @@ export default function HeroSection() {
               onChange={(e) => setWebsite(e.target.value)}
               className="border p-2 rounded"
             />
-            <Button type="submit">Submit</Button>
+            <Button type="submit">
+              {isHospitalSubmitting ? "Submitting" : "Submit"}
+            </Button>
           </form>
           <DialogClose />
         </DialogContent>

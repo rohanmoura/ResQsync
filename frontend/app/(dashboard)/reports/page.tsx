@@ -41,10 +41,11 @@ const ReportsPage = () => {
     }, [router]);
 
     // New function for downloading a report using the provided endpoint
-    const handleDownload = async (report: any) => {
+
+    const downloadReport = async (report: any) => {
         const token = localStorage.getItem("jwtToken");
         if (!token) {
-            router.push("/signin");
+            window.location.href = "/signin";
             return;
         }
         try {
@@ -53,19 +54,40 @@ const ReportsPage = () => {
                     "Content-Type": "multipart/form-data",
                     "Authorization": `Bearer ${token}`,
                 },
-                responseType: "blob", // necessary for binary data
             });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", report.fileName);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
+
+            // Extract filename from the Content-Disposition header if available.
+            const disposition = response.headers["content-disposition"];
+            let filename = "downloaded_report";
+            if (disposition && disposition.indexOf("filename=") !== -1) {
+                const filenameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+                const matches = filenameRegex.exec(disposition);
+                if (matches && matches[1]) {
+                    filename = matches[1].replace(/['"]/g, "");
+                }
+            }
+
+            // Create a Blob from the response data.
+            const blob = new Blob([response.data], { type: response.headers["content-type"] || "application/octet-stream" });
+            const url = window.URL.createObjectURL(blob);
+
+            // Create a temporary anchor element and trigger the download.
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+
+            // Clean up the object URL.
+            window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Error downloading report:", error);
+            // Optionally, display an error message to the user.
         }
     };
+
+
 
     if (loading) {
         return (
@@ -99,7 +121,7 @@ const ReportsPage = () => {
                                     <p className="text-sm text-muted-foreground">Report ID: {report.id}</p>
                                 </CardContent>
                                 <CardFooter className="flex justify-between">
-                                    <Button variant="outline" size="sm" onClick={() => handleDownload(report)}>
+                                    <Button variant="outline" size="sm" onClick={() => downloadReport(report)}>
                                         Download
                                     </Button>
                                     <Button
