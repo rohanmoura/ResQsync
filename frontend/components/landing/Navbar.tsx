@@ -101,13 +101,17 @@ export default function Navbar() {
 
     // Build dynamic tabs based on conditions.
     // If user is a Manager, add "Volunteer Req".
-    // Also, if the user has HOSPITAL role, add "Hospital Req" (both open the same page).
+    // Also, if the user has MANAGER role, add "Hospital Req" (both open the same page).
     const dynamicTabs: { label: string; href: string }[] = [];
     if (showManagerTab) {
         dynamicTabs.push({ label: "Volunteer Req", href: "/manager" });
     }
     if (user?.roles?.includes("MANAGER")) {
         dynamicTabs.push({ label: "Hospital Req", href: "/hospital-req" });
+    }
+    // New condition: if roles include both USER and HOSPITAL, add "All Reports" tab.
+    if (user?.roles?.includes("USER") && user?.roles?.includes("HOSPITAL")) {
+        dynamicTabs.push({ label: "All Reports", href: "/all-reports" });
     }
     // Fallback to existing conditions if no dynamic tab was added.
     if (dynamicTabs.length === 0) {
