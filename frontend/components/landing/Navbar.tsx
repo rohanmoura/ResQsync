@@ -99,16 +99,25 @@ export default function Navbar() {
     const showManagerTab =
         user?.roles?.includes("USER") && user?.roles?.includes("MANAGER");
 
-    // Build dynamic tab based on conditions. Only one appears at the end.
-    let dynamicTab: { label: string; href: string } | null = null;
+    // Build dynamic tabs based on conditions.
+    // If user is a Manager, add "Volunteer Req".
+    // Also, if the user has HOSPITAL role, add "Hospital Req" (both open the same page).
+    const dynamicTabs: { label: string; href: string }[] = [];
     if (showManagerTab) {
-        dynamicTab = { label: "Manager", href: "/manager" };
-    } else if (showHelpRequests) {
-        dynamicTab = { label: "Help Requests", href: "/help-request" };
-    } else if (showReportsTab) {
-        dynamicTab = { label: "Reports", href: "/reports" };
+        dynamicTabs.push({ label: "Volunteer Req", href: "/manager" });
     }
-    const finalTabs = dynamicTab ? [...TABS, dynamicTab] : TABS;
+    if (user?.roles?.includes("HOSPITAL")) {
+        dynamicTabs.push({ label: "Hospital Req", href: "/manager" });
+    }
+    // Fallback to existing conditions if no dynamic tab was added.
+    if (dynamicTabs.length === 0) {
+        if (showHelpRequests) {
+            dynamicTabs.push({ label: "Help Requests", href: "/help-request" });
+        } else if (showReportsTab) {
+            dynamicTabs.push({ label: "Reports", href: "/reports" });
+        }
+    }
+    const finalTabs = [...TABS, ...dynamicTabs];
 
     // Close mobile menu when clicking outside
     useEffect(() => {
