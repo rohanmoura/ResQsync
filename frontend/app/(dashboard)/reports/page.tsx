@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 
 // Import TextShimmer from your motion-pretives component library
 import { TextShimmer } from "@/components/core/text-shimmer";
+import { withAuth } from "@/app/_components/withAuth";
 
 const ReportsPage = () => {
     const [reports, setReports] = useState<any[]>([]);
@@ -141,4 +142,4 @@ const ReportsPage = () => {
     );
 };
 
-export default ReportsPage;
+export default withAuth(ReportsPage);
