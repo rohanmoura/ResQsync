@@ -29,7 +29,6 @@ export default function ManagerPage() {
                 const token = localStorage.getItem("jwtToken");
                 const response = await axios.get("http://localhost:8081/api/manager/volunteers", {
                     headers: {
-                        "Content-Type": "multipart/form-data",
                         "Authorization": `Bearer ${token}`,
                     },
                 });
