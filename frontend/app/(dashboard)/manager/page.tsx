@@ -107,7 +107,7 @@ export default function ManagerPage() {
                 className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 overflow-y-auto"
                 style={{ maxHeight: "80vh" }}
             >
-                {volunteers.map((volunteer) => {
+                {volunteers.map((volunteer, index) => {
                     // Conditional display for volunteeringTypes
                     const volunteerTypesDisplay = volunteer.volunteeringTypes
                         ? volunteer.volunteeringTypes.length > 1
@@ -124,7 +124,7 @@ export default function ManagerPage() {
 
                     return (
                         <div
-                            key={volunteer.email}
+                            key={`${volunteer.email}-${index}`}
                             className="bg-card dark:bg-zinc-900 p-4 rounded-lg shadow border border-border"
                         >
                             <h2 className="text-xl font-semibold text-foreground">
