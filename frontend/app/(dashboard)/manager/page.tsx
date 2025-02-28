@@ -78,7 +78,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/volunteers/verify/${email}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/volunteers/verify/${encodeURIComponent(email)}`, {}, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Volunteer Verified!");
@@ -96,7 +96,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/volunteers/unverify/${email}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/volunteers/unverify/${encodeURIComponent(email)}`, {}, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Volunteer Unverified!");
@@ -115,9 +115,12 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/hospitals/verify/${officialEmail}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/hospitals/verify/${encodeURIComponent(officialEmail)}`, {}, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
+            // await axios.post(http://localhost:8081/api/manager/volunteers/verify/${volunteer.email}, {}, {
+            //     headers: { "Authorization": Bearer ${token} },
+            //   });
             toast.success("Hospital Verified!");
             console.log("Verified hospital:", officialEmail);
         } catch (error) {
@@ -133,7 +136,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/hospitals/unverify/${officialEmail}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/hospitals/unverify/${encodeURIComponent(officialEmail)}`, {}, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Hospital Unverified!");
