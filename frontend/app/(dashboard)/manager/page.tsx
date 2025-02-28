@@ -32,7 +32,11 @@ export default function ManagerPage() {
                         "Authorization": `Bearer ${token}`,
                     },
                 });
-                setVolunteers(response.data);
+                // Ensure that volunteersData is an array.
+                const volunteersData = Array.isArray(response.data)
+                    ? response.data
+                    : response.data.volunteers || [];
+                setVolunteers(volunteersData);
             } catch (error) {
                 console.error("Error fetching volunteers:", error);
                 toast.error("Failed to load volunteers.");
