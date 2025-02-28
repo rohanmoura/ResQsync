@@ -137,6 +137,10 @@ export default function HeroSection() {
       );
       return;
     }
+    if (userProfile.roles.includes("HOSPITAL")) {
+      toast.error("You already have a hospital role, you cannot request help.");
+      return;
+    }
     setGetHelpDialogOpen(true);
   };
 
@@ -166,6 +170,10 @@ export default function HeroSection() {
       toast.error(
         "You are currently a help requester so you cannot volunteer. Please remove your help requester role to volunteer."
       );
+      return;
+    }
+    if (userProfile.roles.includes("HOSPITAL")) {
+      toast.error("You already have a hospital role, you cannot volunteer.");
       return;
     }
     setVolunteerDialogOpen(true);
@@ -338,25 +346,60 @@ export default function HeroSection() {
     }
   };
 
-  const handleHospitalSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleHospitalSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setIsHospitalSubmitting(true);
-    // Simulate a submission delay
-    setTimeout(() => {
-      console.log({
-        registrationNumber,
-        hospitalName,
-        address,
-        city,
-        state: stateField,
-        zipCode,
-        officialEmail,
-        phone,
-        website,
-      });
-      setIsHospitalSubmitting(false);
+    // Validate that all fields are filled
+    if (
+      !registrationNumber ||
+      !hospitalName ||
+      !address ||
+      !city ||
+      !stateField ||
+      !zipCode ||
+      !officialEmail ||
+      !phone ||
+      !website
+    ) {
+      toast.error("Please fill all field details.");
       setHospitalDialogOpen(false);
-    }, 1000);
+      return;
+    }
+    setIsHospitalSubmitting(true);
+    try {
+      const token = localStorage.getItem("jwtToken");
+      await axios.post(
+        "http://localhost:8081/api/hospitals/addHospital",
+        {
+          registrationNumber,
+          hospitalName,
+          address,
+          city,
+          state: stateField,
+          zipCode,
+          officialEmail,
+          phone,
+          website,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success("Hospital role Created Successfully!");
+      // Update user profile to include HOSPITAL role if not already there
+      if (userProfile) {
+        const updatedProfile = {
+          ...userProfile,
+          roles: userProfile.roles.includes("HOSPITAL")
+            ? userProfile.roles
+            : [...userProfile.roles, "HOSPITAL"],
+        };
+        setUserProfile(updatedProfile);
+      }
+      setHospitalDialogOpen(false);
+      window.location.reload();
+    } catch (error) {
+      toast.error("Failed to create hospital role. Please try again.");
+    } finally {
+      setIsHospitalSubmitting(false);
+    }
   };
 
   const handleSkillKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
