@@ -95,9 +95,15 @@ export default function Navbar() {
         (user?.roles?.includes("HOSPITAL") ||
             (!user?.roles?.includes("VOLUNTEER") && !user?.roles?.includes("HELPREQUESTER")));
 
+    // New condition for Manager tab: shown when user has role USER and MANAGER
+    const showManagerTab =
+        user?.roles?.includes("USER") && user?.roles?.includes("MANAGER");
+
     // Build dynamic tab based on conditions. Only one appears at the end.
     let dynamicTab: { label: string; href: string } | null = null;
-    if (showHelpRequests) {
+    if (showManagerTab) {
+        dynamicTab = { label: "Manager", href: "/manager" };
+    } else if (showHelpRequests) {
         dynamicTab = { label: "Help Requests", href: "/help-request" };
     } else if (showReportsTab) {
         dynamicTab = { label: "Reports", href: "/reports" };
@@ -187,7 +193,6 @@ export default function Navbar() {
             setIsUploading(false);
         }
     };
-
 
     return (
         <>
