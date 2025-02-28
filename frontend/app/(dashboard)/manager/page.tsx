@@ -78,7 +78,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/volunteers/verify/${encodeURIComponent(email)}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/volunteers/verify/${encodeURIComponent(email)}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Volunteer Verified!");
@@ -96,7 +96,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/volunteers/unverify/${encodeURIComponent(email)}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/volunteers/unverify/${encodeURIComponent(email)}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Volunteer Unverified!");
@@ -115,7 +115,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/hospitals/verify/${encodeURIComponent(officialEmail)}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/hospitals/verify/${encodeURIComponent(officialEmail)}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             // await axios.post(http://localhost:8081/api/manager/volunteers/verify/${volunteer.email}, {}, {
@@ -136,7 +136,7 @@ export default function ManagerPage() {
             return;
         }
         try {
-            await axios.post(`http://localhost:8081/api/manager/hospitals/unverify/${encodeURIComponent(officialEmail)}`, {}, {
+            await axios.post(`http://localhost:8081/api/manager/hospitals/unverify/${encodeURIComponent(officialEmail)}`, {
                 headers: { "Authorization": `Bearer ${token}` },
             });
             toast.success("Hospital Unverified!");
